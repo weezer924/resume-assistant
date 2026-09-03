@@ -199,7 +199,7 @@ Models are configured by role rather than hard-coded inside business logic:
 - `agent_model`
 - `embedding_model`
 
-Model selection is made from evaluation evidence near implementation time and may change before the November–December interview window.
+Model selection is made from evaluation evidence near implementation time and may change before the portfolio release.
 
 ### 12.3 Required telemetry
 
@@ -227,14 +227,14 @@ Personal prompt content is not duplicated into general logs.
 - synthetic and safe for Git
 - 12 high-value cases in the first vertical slice
 - approximately 30 cases by the mid-project checkpoint
-- 40–60 cases for the interview-ready release
+- 40–60 cases for the portfolio-ready release
 
 #### Private dataset
 
 - real personal use cases
 - gitignored
 - same schema and runners as the public dataset
-- 10–20 cases by interview-ready release
+- 10–20 cases by portfolio-ready release
 
 ### 13.2 Required scenario categories
 
@@ -317,7 +317,7 @@ Human labels remain the reference for evaluating the judge; judge outputs do not
 
 ### 13.7 Release gates
 
-Hard gates for the interview-ready public suite:
+Hard gates for the portfolio-ready public suite:
 
 | Gate | Target |
 | --- | --- |

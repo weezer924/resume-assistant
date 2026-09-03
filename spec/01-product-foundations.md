@@ -4,7 +4,7 @@ This project is a local-first AI application that helps one user tailor existing
 
 The application must extract career facts from user-provided documents, preserve their provenance, require human confirmation, retrieve only relevant confirmed evidence, and produce Japanese resume-edit suggestions whose factual claims are traceable to evidence.
 
-The project is also an interview artifact for AI Application Engineer and Forward Deployed Engineer roles. It must demonstrate a coherent production-oriented AI application rather than a collection of unrelated AI technologies.
+The project is also a portfolio artifact for AI Application Engineer and Forward Deployed Engineer roles. It must demonstrate a coherent production-oriented AI application rather than a collection of unrelated AI technologies.
 
 ### 1.1 Product thesis
 
@@ -45,9 +45,9 @@ It must not claim experience that the implementation does not demonstrate, inclu
 9. Evaluate quality repeatedly across prompt and model versions.
 10. Publish the code, architecture, synthetic dataset, and sanitized evaluation report without publishing personal data.
 
-### 2.2 Interview-ready success
+### 2.2 Portfolio-ready success
 
-The application is interview-ready when all of the following are true:
+The application is portfolio-ready when all of the following are true:
 
 - A reviewer can clone the public repository and run the application locally from documented steps.
 - A synthetic resume and job description complete the primary workflow end to end.
@@ -65,11 +65,11 @@ The application is interview-ready when all of the following are true:
 
 ### 3.1 Primary user
 
-The primary user is the repository owner, using personal career documents to prepare applications for Japanese AI Application Engineer, AI Product Engineer, and FDE-adjacent roles.
+The primary user is the repository owner, using personal career documents to tailor resume content for Japanese AI Application Engineer, AI Product Engineer, and FDE-adjacent roles.
 
 ### 3.2 Secondary viewers
 
-The application may be shown locally to a small number of interviewers. Interviewers do not receive accounts and do not upload personal data. Demonstrations should use synthetic or sanitized fixtures unless the owner deliberately chooses otherwise.
+The application may be shown locally to a small number of reviewers. Reviewers do not receive accounts and do not upload personal data. Demonstrations should use synthetic or sanitized fixtures unless the owner deliberately chooses otherwise.
 
 ### 3.3 Deployment boundary
 

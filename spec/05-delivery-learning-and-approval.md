@@ -142,7 +142,7 @@ Acceptance:
 - Private inputs and outputs are absent from Git status.
 - Public reports contain only synthetic or sanitized data.
 
-### Week 10 — Interview release
+### Week 10 — Portfolio release
 
 Deliverable:
 
@@ -161,7 +161,7 @@ Acceptance:
 
 ## 21. Demo narrative
 
-The ten-minute interview demonstration follows this structure:
+The ten-minute portfolio demonstration follows this structure:
 
 1. **Product problem — 1 minute:** tailoring a resume without unsupported claims.
 2. **Primary workflow — 2 minutes:** import, confirm Facts, analyze a job, generate suggestions.
