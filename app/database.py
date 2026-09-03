@@ -1,4 +1,7 @@
 import sqlite3
+from typing import cast
+
+from app.schema import Document
 
 DB_PATH = "database/resume_assistant.db"
 
@@ -38,6 +41,22 @@ def save_document(document_id: str, filename: str, content: str):
         )
 
 
+def get_document(document_id: str) -> Document | None:
+    with sqlite3.connect(DB_PATH) as connection:
+        cursor = connection.execute(
+            """
+            SELECT document_id, filename, content
+            FROM documents
+            WHERE document_id = ?
+            """,
+            (document_id,),
+        )
+        row = cast(tuple[str, str, str] | None, cursor.fetchone())
+        if row is None:
+            return None
+        return Document(document_id=row[0], filename=row[1], content=row[2])
+
+
 def save_fact(
     document_id: str,
     claim: str,
@@ -63,3 +82,17 @@ def save_fact(
                 source_sequence,
             ),
         )
+
+
+class SqliteFactStore:
+    def get_document(self, document_id: str) -> Document | None:
+        return get_document(document_id)
+
+    def save_fact(
+        self,
+        document_id: str,
+        claim: str,
+        evidence_quote: str,
+        source_sequence: int,
+    ) -> None:
+        return save_fact(document_id, claim, evidence_quote, source_sequence)

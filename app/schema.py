@@ -30,3 +30,14 @@ class FactDraft(BaseModel):
 class ConfirmFactRequest(BaseModel):
     document_id: str
     fact_draft: FactDraft
+
+
+class Document(BaseModel):
+    document_id: str
+    filename: str
+    content: str
+
+
+class ModelFactOutput(BaseModel):
+    claim: str
+    evidence_quote: str

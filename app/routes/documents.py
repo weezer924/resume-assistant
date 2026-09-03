@@ -1,16 +1,21 @@
+from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
 from app.database import save_document
-from app.services.fact_extraction import extract_fact_draft
-from app.services.markdown import make_source_span
+from app.dependencies import get_facts
+from app.services.facts import EvidenceNotInSourceSpan, Facts, SourceSpanNotFound
 
 router = APIRouter()
 
 
 @router.post("/documents/import")
-async def import_document(file: UploadFile | None = None, sequence: int = 2):
+async def import_document(
+    facts: Annotated[Facts, Depends(get_facts)],
+    file: UploadFile | None = None,
+    sequence: int = 2,
+):
     if not file:
         return {"message": "No upload file sent"}
 
@@ -20,23 +25,13 @@ async def import_document(file: UploadFile | None = None, sequence: int = 2):
 
     save_document(document_id, file.filename or "uploaded.md", content)
 
-    source_spans = make_source_span(content)
-
-    selected_span = next(
-        (span for span in source_spans if span["sequence"] == sequence),
-        None,
-    )
-
-    if selected_span is None:
+    try:
+        fact_draft = await facts.draft(document_id, sequence)
+    except SourceSpanNotFound:
         raise HTTPException(status_code=404, detail="Source span not found")
-
-    # call openAI API modal
-    fact_draft = await extract_fact_draft(selected_span)
-
-    if fact_draft.evidence_quote not in selected_span["text"]:
+    except EvidenceNotInSourceSpan:
         raise HTTPException(
-            status_code=422,
-            detail="Model evidence quote is not in the selected source span",
+            status_code=422, detail="Evidence quote is not in the selected source span"
         )
 
     return {

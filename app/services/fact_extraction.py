@@ -2,10 +2,10 @@ from openai import AsyncOpenAI
 
 client = AsyncOpenAI()
 
-from app.schema import FactDraft, SourceSpan
+from app.schema import ModelFactOutput, SourceSpan
 
 
-async def extract_fact_draft(source_span: SourceSpan) -> FactDraft:
+async def extract_fact_draft(source_span: SourceSpan) -> ModelFactOutput:
     response = await client.responses.parse(
         model="gpt-5-mini",
         input=[
@@ -20,13 +20,11 @@ async def extract_fact_draft(source_span: SourceSpan) -> FactDraft:
             {
                 "role": "user",
                 "content": (
-                    f"source_sequence: {source_span['sequence']}\n"
-                    f"section: {source_span['section']}\n"
-                    f"text: {source_span['text']}"
+                    f"section: {source_span['section']}\ntext: {source_span['text']}"
                 ),
             },
         ],
-        text_format=FactDraft,
+        text_format=ModelFactOutput,
     )
 
     fact_draft = response.output_parsed
