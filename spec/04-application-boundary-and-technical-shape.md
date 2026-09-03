@@ -249,15 +249,13 @@ This section defines responsibility boundaries, not mandatory implementation det
 
 ```text
 resume-assistant/
-  spec/
-    SPEC.md
   backend/
     application and evaluation packages
   frontend/
     local web application
   prompts/
     versioned prompt sources and manifest
-  datasets/
+  database/
     public synthetic fixtures and expected behavior
   reports/
     sanitized, reproducible public reports
@@ -268,4 +266,3 @@ resume-assistant/
 ```
 
 The exact code directory structure is chosen during implementation and reviewed against module depth and responsibility, not copied mechanically from this outline.
-

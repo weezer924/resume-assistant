@@ -23,7 +23,7 @@ Acceptance:
 
 Deliverable:
 
-- DOCX, Markdown, and TXT parsing
+- Markdown, and TXT parsing
 - Document and immutable SourceSpan persistence
 - candidate Fact extraction linked to SourceSpans
 
