@@ -48,11 +48,15 @@ The final output is a structured investigation result containing:
 
 The UI displays tool calls and structured results, not hidden chain-of-thought.
 
-### 9.6 ReAct and framework boundary
+### 9.6 Framework boundary
 
-The Agent may follow a ReAct-like observe/action/result loop, but ReAct is treated as a design pattern rather than a separate technology dependency.
+The v1 Evidence Agent is built with LangGraph. LangGraph is used only inside the Evidence Agent; the fixed pipeline calls the Responses API directly.
 
-LangChain and LangGraph are not v1 dependencies. A post-v1 experiment may reimplement only the Evidence Agent with LangGraph and compare success rate, tool calls, latency, tokens, complexity, and checkpoint behavior.
+- The graph state, tool nodes, turn and tool-call limits, and stop reasons are explicit in application code, not inferred from framework defaults.
+- Checkpoints are stored locally and are inspectable from Run Detail.
+- Every model call made through LangGraph records the Section 12.3 telemetry in the Run record.
+
+A post-v1 experiment may reimplement only the Evidence Agent with the OpenAI Agents SDK or a direct Responses function-tool loop and compare success rate, tool calls, latency, tokens, complexity, and checkpoint behavior against the LangGraph version.
 
 ## 10. RAG and hybrid retrieval
 
@@ -183,7 +187,7 @@ Runs record prompt ID, version, and hash. Prompt changes must be evaluated again
 
 ### 12.1 API boundary
 
-The application uses the official OpenAI Python SDK and Responses API. Structured tasks use strict schema-constrained outputs validated with Pydantic.
+The fixed pipeline uses the official OpenAI Python SDK and Responses API. Structured tasks use strict schema-constrained outputs validated with Pydantic. The Evidence Agent reaches the same models through LangGraph's OpenAI integration and is bound by Section 9.6.
 
 ### 12.2 Model roles
 

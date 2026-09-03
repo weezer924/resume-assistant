@@ -190,7 +190,7 @@ The 8–10 week release does not include:
 - autonomous Agent control of the core pipeline
 - multi-agent systems
 - MCP or A2A integration
-- LangChain or LangGraph as application dependencies
+- LangChain or LangGraph outside the Evidence Agent
 - fine-tuning or model training
 - self-improving or Meta Agent behavior
 - open-ended autonomous exploration
@@ -209,7 +209,7 @@ The 8–10 week release does not include:
 - FastAPI
 - Pydantic v2 and `pydantic-settings`
 - official OpenAI Python SDK and Responses API
-- OpenAI Agents SDK or Responses function tools for the bounded Agent, selected when that milestone begins
+- LangGraph with `langchain-openai` for the bounded Evidence Agent
 - SQLAlchemy 2.x
 - Alembic with SQLite batch migrations
 - SQLite with foreign keys enabled and strict tables where appropriate
@@ -241,7 +241,7 @@ Docker is not required for v1 because SQLite and LanceDB are local files and bot
 - Exact dependency versions are locked at project initialization.
 - Business logic does not depend directly on model names.
 - Framework abstractions must not hide prompt inputs, context, tool calls, usage, or errors from the Run record.
-- New AI frameworks require a measured use case and an evaluation comparison before adoption.
+- LangGraph is a v1 dependency scoped to the Evidence Agent. Any further AI framework requires a measured use case and an evaluation comparison before adoption.
 
 ## 19. Repository and artifact layout
 

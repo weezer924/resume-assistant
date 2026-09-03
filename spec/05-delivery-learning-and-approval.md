@@ -115,7 +115,7 @@ Acceptance:
 Deliverable:
 
 - explicit deeper-investigation action
-- read-only tools
+- LangGraph graph with read-only tool nodes and a local checkpointer
 - tool-call and turn limits
 - structured Agent result and timeline
 
@@ -197,7 +197,7 @@ The following are intentionally deferred until representative data exists:
 - reranker choice
 - model retry policy by failure category
 - soft-metric release thresholds
-- OpenAI Agents SDK versus direct Responses function-tool loop for the bounded Agent
+- whether the post-v1 Evidence Agent comparison uses the OpenAI Agents SDK or a direct Responses function-tool loop
 
 Each decision must be made from a fixed evaluation comparison rather than preference alone.
 

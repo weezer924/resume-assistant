@@ -21,7 +21,7 @@ The project should provide reviewable evidence of the following capabilities:
 - context assembly and evidence budgeting
 - structured outputs and schema validation
 - RAG and hybrid retrieval
-- bounded tool-calling agent workflow
+- bounded tool-calling agent workflow built with LangGraph
 - deterministic safety checks
 - LLM-as-judge evaluation
 - human calibration of judges
