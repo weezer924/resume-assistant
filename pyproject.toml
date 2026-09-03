@@ -8,3 +8,9 @@ dependencies = [
     "fastapi[standard]>=0.141.1",
     "openai>=3.6.0",
 ]
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.39.10",
+    "ruff>=0.16.5",
+]

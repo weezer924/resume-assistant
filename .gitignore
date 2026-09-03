@@ -1,3 +1,28 @@
+# Secrets
 .env
-private
-database
+.env.*
+!.env.example
+
+# Local resume data and SQLite
+/database/
+/private/
+/database/*.db
+/database/*.db-*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Tool caches and test output
+.pytest_cache/
+.ruff_cache/
+.basedpyright/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# OS and editor files
+.DS_Store
+*.log
