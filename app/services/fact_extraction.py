@@ -27,9 +27,9 @@ async def extract_fact_draft(source_span: SourceSpan) -> ModelFactOutput:
         text_format=ModelFactOutput,
     )
 
-    fact_draft = response.output_parsed
+    output = response.output_parsed
 
-    if fact_draft is None:
+    if output is None:
         raise RuntimeError("Model did not return a fact draft")
 
-    return fact_draft
+    return output

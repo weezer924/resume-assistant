@@ -1,11 +1,11 @@
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, UploadFile
 
-from app.database import save_document
+from app.database import save_document_to_db
 from app.dependencies import get_facts
-from app.services.facts import EvidenceNotInSourceSpan, Facts, SourceSpanNotFound
+from app.services.facts import Facts
 
 router = APIRouter()
 
@@ -19,20 +19,14 @@ async def import_document(
     if not file:
         return {"message": "No upload file sent"}
 
-    contents = await file.read()
     document_id = str(uuid4())
+
+    contents = await file.read()
     content = contents.decode("utf-8")
 
-    save_document(document_id, file.filename or "uploaded.md", content)
+    save_document_to_db(document_id, file.filename or "uploaded.md", content)
 
-    try:
-        fact_draft = await facts.draft(document_id, sequence)
-    except SourceSpanNotFound:
-        raise HTTPException(status_code=404, detail="Source span not found")
-    except EvidenceNotInSourceSpan:
-        raise HTTPException(
-            status_code=422, detail="Evidence quote is not in the selected source span"
-        )
+    fact_draft = await facts.extract(document_id, sequence)
 
     return {
         "document_id": document_id,

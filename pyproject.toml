@@ -12,5 +12,12 @@ dependencies = [
 [dependency-groups]
 dev = [
     "basedpyright>=1.39.10",
+    "debugpy>=1.8.21",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
     "ruff>=0.16.5",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]

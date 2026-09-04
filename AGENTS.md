@@ -8,7 +8,7 @@ Guidance for coding agents working in this repository. Claude Code reads this fi
 - `uv run fastapi dev app/main.py` — start the local API with reload.
 - `uv run ruff check .` — lint; `uv run ruff format .` — format (`--check` to verify only).
 - `uv run basedpyright` — static type checking.
-- No test suite exists yet. When adding one: pytest is not in the dev dependencies — add it first, put tests under `tests/test_<module>.py`, run a single test with `uv run pytest tests/test_<module>.py::test_<behavior>`. Use FastAPI `TestClient`/HTTPX for routes and fixed doubles for OpenAI calls.
+- When adding one: pytest is not in the dev dependencies — add it first, put tests under `tests/test_<module>.py`, run a single test with `uv run pytest tests/test_<module>.py::test_<behavior>`. Use FastAPI `TestClient`/HTTPX for routes and fixed doubles for OpenAI calls.
 
 Fact extraction needs `OPENAI_API_KEY` in the gitignored `.env`.
 

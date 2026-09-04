@@ -30,7 +30,7 @@ def init_db():
         """)
 
 
-def save_document(document_id: str, filename: str, content: str):
+def save_document_to_db(document_id: str, filename: str, content: str):
     with sqlite3.connect(DB_PATH) as connection:
         _ = connection.execute(
             """
@@ -41,58 +41,44 @@ def save_document(document_id: str, filename: str, content: str):
         )
 
 
-def get_document(document_id: str) -> Document | None:
-    with sqlite3.connect(DB_PATH) as connection:
-        cursor = connection.execute(
-            """
-            SELECT document_id, filename, content
-            FROM documents
-            WHERE document_id = ?
-            """,
-            (document_id,),
-        )
-        row = cast(tuple[str, str, str] | None, cursor.fetchone())
-        if row is None:
-            return None
-        return Document(document_id=row[0], filename=row[1], content=row[2])
-
-
-def save_fact(
-    document_id: str,
-    claim: str,
-    evidence_quote: str,
-    source_sequence: int,
-):
-
-    with sqlite3.connect(DB_PATH) as connection:
-        _ = connection.execute(
-            """
-                    INSERT INTO facts (
-                        document_id,
-                        claim,
-                        evidence_quote,
-                        source_sequence
-                    )
-                    VALUES (?, ?, ?, ?)
-                    """,
-            (
-                document_id,
-                claim,
-                evidence_quote,
-                source_sequence,
-            ),
-        )
-
-
 class SqliteFactStore:
-    def get_document(self, document_id: str) -> Document | None:
-        return get_document(document_id)
+    def get_document_from_db(self, document_id: str) -> Document | None:
+        with sqlite3.connect(DB_PATH) as connection:
+            cursor = connection.execute(
+                """
+                SELECT document_id, filename, content
+                FROM documents
+                WHERE document_id = ?
+                """,
+                (document_id,),
+            )
+            row = cast(tuple[str, str, str] | None, cursor.fetchone())
+            if row is None:
+                return None
+            return Document(document_id=row[0], filename=row[1], content=row[2])
 
-    def save_fact(
+    def save_fact_to_db(
         self,
         document_id: str,
         claim: str,
         evidence_quote: str,
         source_sequence: int,
     ) -> None:
-        return save_fact(document_id, claim, evidence_quote, source_sequence)
+        with sqlite3.connect(DB_PATH) as connection:
+            _ = connection.execute(
+                """
+                        INSERT INTO facts (
+                            document_id,
+                            claim,
+                            evidence_quote,
+                            source_sequence
+                        )
+                        VALUES (?, ?, ?, ?)
+                        """,
+                (
+                    document_id,
+                    claim,
+                    evidence_quote,
+                    source_sequence,
+                ),
+            )
