@@ -4,7 +4,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, UploadFile
 
 from app.database import save_document_to_db
-from app.dependencies import get_facts
+from app.dependencies import get_facts_by_LLM
 from app.services.facts import Facts
 
 router = APIRouter()
@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.post("/documents/import")
 async def import_document(
-    facts: Annotated[Facts, Depends(get_facts)],
+    facts: Annotated[Facts, Depends(get_facts_by_LLM)],
     file: UploadFile | None = None,
     sequence: int = 2,
 ):
