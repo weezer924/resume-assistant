@@ -4,14 +4,14 @@ from app.schema import MarkdownSection, SectionHeader, SourceSpan
 def make_source_span(content: str) -> list[SourceSpan]:
     source_spans: list[SourceSpan] = []
     sequence = 1
-    chunks = split_markdown_sections(content)
+    spans = split_markdown_sections(content)
 
-    for chunk in chunks:
+    for span in spans:
         source_spans.append(
             {
-                "section": chunk["title"],
-                "level": chunk["level"],
-                "text": "\n".join(chunk["body"]),
+                "section": span["title"],
+                "level": span["level"],
+                "text": "\n".join(span["body"]),
                 "sequence": sequence,
             }
         )
@@ -21,35 +21,36 @@ def make_source_span(content: str) -> list[SourceSpan]:
 
 
 def split_markdown_sections(text: str) -> list[MarkdownSection]:
-    level_sections: list[MarkdownSection] = []
-    body_lines: list[str] = []
-    current_chunk: MarkdownSection | SectionHeader | None = None
+    spans: list[MarkdownSection] = []
+    body: list[str] = []
+    header: SectionHeader | None = None
 
     for line in text.splitlines():
         if line.startswith("#"):
             level = len(line) - len(line.lstrip("#"))
             title = line[level:].strip()
-            if current_chunk is not None:
-                level_sections.append(
+
+            if header is not None or body:
+                spans.append(
                     {
-                        "level": current_chunk["level"],
-                        "title": current_chunk["title"],
-                        "body": body_lines.copy(),
+                        "level": header["level"] if header is not None else 0,
+                        "title": header["title"] if header is not None else "",
+                        "body": body.copy(),
                     }
                 )
-
-            current_chunk = {"level": level, "title": title}
-            body_lines = []
+            # # Experience -> {level:1, title:"Experience"}
+            header = {"level": level, "title": title}
+            body = []
         else:
-            body_lines.append(line)
+            body.append(line)
 
-    if current_chunk is not None:
-        level_sections.append(
+    if header is not None or body:
+        spans.append(
             {
-                "level": current_chunk["level"],
-                "title": current_chunk["title"],
-                "body": body_lines.copy(),
+                "level": header["level"] if header is not None else 0,
+                "title": header["title"] if header is not None else "",
+                "body": body.copy(),
             }
         )
 
-    return level_sections
+    return spans
