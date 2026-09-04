@@ -3,21 +3,10 @@ from typing import TypedDict
 from pydantic import BaseModel
 
 
-class SectionHeader(TypedDict):
-    level: int
-    title: str
-
-
-class MarkdownSection(TypedDict):
-    level: int
-    title: str
-    body: list[str]
-
-
 class SourceSpan(TypedDict):
     section: str
     level: int
-    text: str
+    body: str
     sequence: int
 
 

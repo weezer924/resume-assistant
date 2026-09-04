@@ -52,12 +52,12 @@ Required fields:
 | --- | --- |
 | `id` | Evidence-facing stable identifier |
 | `document_id` | Parent document |
-| `text` | Exact extracted source text |
+| `body` | Exact extracted source text |
 | `section` | Heading or logical section when known |
 | `location_type` | Paragraph, table cell, line range, or other supported locator |
 | `location_data` | Structured coordinates within the source |
 | `sequence` | Stable order in the parsed document |
-| `text_hash` | Detects source changes |
+| `body_hash` | Detects source changes |
 
 SourceSpan text is never edited. Corrections create or update Facts, not source excerpts.
 

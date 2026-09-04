@@ -20,7 +20,7 @@ async def extract_fact_draft(source_span: SourceSpan) -> ModelFactOutput:
             {
                 "role": "user",
                 "content": (
-                    f"section: {source_span['section']}\ntext: {source_span['text']}"
+                    f"section: {source_span['section']}\nbody: {source_span['body']}"
                 ),
             },
         ],

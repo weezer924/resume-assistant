@@ -50,7 +50,7 @@ class Facts:
         return selected_span
 
     def _check_evidence(self, span: SourceSpan, evidence_quote: str) -> None:
-        if evidence_quote not in span["text"]:
+        if evidence_quote not in span["body"]:
             raise EvidenceNotInSourceSpan()
 
     def confirm(self, document_id: str, fact_draft: FactDraft) -> None:
