@@ -8,6 +8,15 @@ class SectionHeader(TypedDict):
     title: str
 
 
+def get_span_by_sequence(
+    source_spans: list[SourceSpan], sequence: int
+) -> SourceSpan | None:
+    return next(
+        (span for span in source_spans if span["sequence"] == sequence),
+        None,
+    )
+
+
 def make_section(
     header: SectionHeader | None, body: list[str], sequence: int
 ) -> SourceSpan:

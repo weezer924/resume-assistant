@@ -2,7 +2,7 @@ from collections.abc import Awaitable, Callable
 from typing import Protocol
 
 from app.schema import Document, FactDraft, ModelFactOutput, SourceSpan
-from app.services.markdown import make_source_span
+from app.services.markdown import get_span_by_sequence, make_source_span
 
 
 class EvidenceNotInSourceSpan(Exception):
@@ -39,10 +39,7 @@ class Facts:
             raise SourceSpanNotFound(document_id, sequence)
         source_spans = make_source_span(document.content)
 
-        selected_span = next(
-            (span for span in source_spans if span["sequence"] == sequence),
-            None,
-        )
+        selected_span = get_span_by_sequence(source_spans, sequence)
 
         if selected_span is None:
             raise SourceSpanNotFound(document_id, sequence)
