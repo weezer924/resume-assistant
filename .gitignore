@@ -1,5 +1,7 @@
-# Secrets
+# Dev
 .zed
+
+# Secrets
 .env
 .env.*
 !.env.example
