@@ -4,13 +4,9 @@ Guidance for coding agents working in this repository. Claude Code reads this fi
 
 ## Commands
 
-- `uv sync` — install Python 3.12 dependencies from `uv.lock`, including the dev group.
-- `uv run fastapi dev app/main.py` — start the local API with reload.
-- `uv run ruff check .` — lint; `uv run ruff format .` — format (`--check` to verify only).
-- `uv run basedpyright` — static type checking.
-- When adding one: pytest is not in the dev dependencies — add it first, put tests under `tests/test_<module>.py`, run a single test with `uv run pytest tests/test_<module>.py::test_<behavior>`. Use FastAPI `TestClient`/HTTPX for routes and fixed doubles for OpenAI calls.
+`Makefile` is the source of truth: `make lint` (ruff + basedpyright), `make test` (pytest), `make fix-ruff` (autofix + format), `make run` / `make dev` / `make debug` (API with `.env` loaded). CI (`.github/workflows/ci.yml`) runs `ruff format --check`, `make lint`, `make test` on every push; a local `.git/hooks/pre-commit` runs the same checks. Run a single test with `uv run pytest tests/test_<module>.py::test_<behavior>`.
 
-Fact extraction needs `OPENAI_API_KEY` in the gitignored `.env`.
+Tests need no `OPENAI_API_KEY`; only `make run` / `make dev` do (gitignored `.env`).
 
 ## Specification gate
 
@@ -18,15 +14,22 @@ The spec (linked in reading order from `README.md`, approval checklist in `spec/
 
 ## Architecture
 
-Local-first, single-user FastAPI app. Product promise: every factual resume claim is backed by confirmed evidence with preserved provenance; missing evidence surfaces instead of being fabricated. The code currently implements one slice of the fixed pipeline:
+Local-first, single-user FastAPI app. Product promise: every factual resume claim is backed by confirmed evidence with preserved provenance; missing evidence surfaces instead of being fabricated. The code implements the first three stages of the fixed pipeline (spec §8.1), each as its own HTTP call:
 
-1. `POST /documents/import` (`app/routes/documents.py`) accepts a markdown upload and persists it via `app/database.py` (raw sqlite3, `database/resume_assistant.db`).
-2. `app/services/markdown.py` splits the document into heading-delimited `SourceSpan`s, each with a 1-based `sequence` — this sequence is the provenance link stored alongside every fact.
-3. `app/services/fact_extraction.py` calls the OpenAI Responses API (`client.responses.parse` with `text_format=FactDraft` for structured output) to draft one claim + evidence quote from the selected span.
-4. Back in the route, a deterministic check verifies `evidence_quote` appears verbatim in the span; mismatch → 422. Safety checks like this live in application code, never only in the prompt — the model is not trusted to enforce them.
-5. The draft is only returned, never auto-saved as a fact. Human confirmation is a separate call: `POST /fact/` (`app/routes/fact.py`) persists the confirmed draft to the `facts` table.
+1. `POST /documents/import` (`app/routes/documents.py`) persists the markdown upload and returns its `SourceSpan`s. `app/services/markdown.py` splits on headings; text before the first heading becomes a span with `section=""`, `level=0`. Each span's 1-based `sequence` is the provenance link stored with every fact.
+2. `POST /documents/{document_id}/spans/{sequence}/draft` calls `Facts.extract` (`app/services/facts.py`), which locates the span, asks the extractor for a `ModelFactOutput`, verifies `evidence_quote` appears verbatim in the span, and returns a `FactDraft`. The draft is never auto-saved.
+3. `POST /fact/` (`app/routes/fact.py`) calls `Facts.confirm`, which re-runs the same span lookup and verbatim check before persisting.
 
-Layering: route handlers stay thin; parsing/extraction/persistence live in `app/services/` and `app/database.py`. `app/schema.py` holds shared types — `TypedDict` for internal span structures, Pydantic models for API and model I/O.
+`Facts` owns the invariants: the verbatim check and span lookup run on both paths, and `source_sequence` comes from the located span, never from the model. Deterministic checks live in application code; the model is not trusted to enforce them. Failures raise `SourceSpanNotFound` (404) and `EvidenceNotInSourceSpan` (422), translated by handlers in `app/main.py`.
+
+Dependencies are injected in `app/dependencies.py`:
+
+- `SqliteFactStore(db_path)` (`app/database.py`) owns schema creation and all reads/writes; `get_store` binds it to `database/resume_assistant.db`.
+- `OpenAIExtractor(client, model)` (`app/services/fact_extraction.py`) is the only place that knows the model name and passes `store=False`. `Facts` accepts any `async` callable `SourceSpan -> ModelFactOutput`.
+
+Tests replace both: `tests/test_facts.py` uses a `tmp_path` sqlite file and a stub extractor; `tests/test_documents.py` overrides `get_store` through `app.dependency_overrides`.
+
+`app/schema.py` holds shared types: `SourceSpan` (`TypedDict`, fields `section`/`level`/`body`/`sequence` per spec §6.3) and Pydantic models for API and model I/O. Route handlers stay thin; logic lives in `app/services/` and `app/database.py`.
 
 ## Privacy
 
