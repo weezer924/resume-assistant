@@ -1,4 +1,4 @@
-.PHONY: dev debug check test
+.PHONY: dev debug check test lint fix-ruff run
 
 run:
 	uv run --env-file .env fastapi dev app/main.py
