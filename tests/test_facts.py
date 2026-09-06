@@ -1,21 +1,23 @@
+from pathlib import Path
+
 import pytest
 
+from app.database import SqliteFactStore
 from app.schema import Document, FactDraft, ModelFactOutput, SourceSpan
 from app.services.facts import EvidenceNotInSourceSpan, Facts, SourceSpanNotFound
 
+DOCUMENT_ID = "doc1"
 
-class FakeStore:
-    def __init__(self) -> None:
-        self.documents: dict[str, Document] = {}
-        self.saved: list[tuple[str, str, str, int]] = []
 
-    def get_document_from_db(self, document_id: str) -> Document | None:
-        return self.documents.get(document_id)
-
-    def save_fact_to_db(
-        self, document_id: str, claim: str, evidence_quote: str, source_sequence: int
-    ) -> None:
-        self.saved.append((document_id, claim, evidence_quote, source_sequence))
+@pytest.fixture
+def store(tmp_path: Path) -> SqliteFactStore:
+    store = SqliteFactStore(str(tmp_path / "test.db"))
+    store.save_document(
+        Document(
+            document_id=DOCUMENT_ID, filename="a.md", content="# A\nhello\n# B\nworld"
+        )
+    )
+    return store
 
 
 def stub_extractor(claim: str, evidence_quote: str):
@@ -25,102 +27,74 @@ def stub_extractor(claim: str, evidence_quote: str):
     return extract
 
 
-def test_confirm_saves_fact():
-    store = FakeStore()
-    store.documents["doc1"] = Document(
-        document_id="doc1", filename="a.md", content="# A\nhello\n# B\nworld"
-    )
+def test_confirm_saves_fact(store: SqliteFactStore):
     facts = Facts(store, stub_extractor("any", "any"))
 
     facts.confirm(
-        "doc1", FactDraft(claim="c", evidence_quote="world", source_sequence=2)
+        DOCUMENT_ID, FactDraft(claim="c", evidence_quote="world", source_sequence=2)
     )
 
-    assert store.saved == [("doc1", "c", "world", 2)]
+    assert store.get_facts(DOCUMENT_ID) == [
+        FactDraft(claim="c", evidence_quote="world", source_sequence=2)
+    ]
 
 
-def test_confirm_rejects_quote_not_in_span():
-    store = FakeStore()
-    store.documents["doc1"] = Document(
-        document_id="doc1", filename="a.md", content="# A\nhello\n# B\nworld"
-    )
-
+def test_confirm_rejects_quote_not_in_span(store: SqliteFactStore):
     facts = Facts(store, stub_extractor("any", "any"))
+
     with pytest.raises(EvidenceNotInSourceSpan):
         facts.confirm(
-            "doc1", FactDraft(claim="c", evidence_quote="nothing", source_sequence=2)
+            DOCUMENT_ID,
+            FactDraft(claim="c", evidence_quote="nothing", source_sequence=2),
         )
-    assert store.saved == []
+    assert store.get_facts(DOCUMENT_ID) == []
 
 
-def test_confirm_rejects_unknown_document():
-    store = FakeStore()
-    store.documents["doc1"] = Document(
-        document_id="doc1", filename="a.md", content="# A\nhello\n# B\nworld"
-    )
-
+def test_confirm_rejects_unknown_document(store: SqliteFactStore):
     facts = Facts(store, stub_extractor("any", "any"))
+
     with pytest.raises(SourceSpanNotFound):
         facts.confirm(
-            "nope", FactDraft(claim="c", evidence_quote="nothing", source_sequence=2)
+            "nope", FactDraft(claim="c", evidence_quote="world", source_sequence=2)
         )
-    assert store.saved == []
+    assert store.get_facts(DOCUMENT_ID) == []
 
 
-def test_confirm_rejects_unknown_sequence():
-    store = FakeStore()
-    store.documents["doc1"] = Document(
-        document_id="doc1", filename="a.md", content="# A\nhello\n# B\nworld"
-    )
-
+def test_confirm_rejects_unknown_sequence(store: SqliteFactStore):
     facts = Facts(store, stub_extractor("any", "any"))
+
     with pytest.raises(SourceSpanNotFound):
         facts.confirm(
-            "doc1", FactDraft(claim="c", evidence_quote="nothing", source_sequence=99)
+            DOCUMENT_ID,
+            FactDraft(claim="c", evidence_quote="world", source_sequence=99),
         )
-    assert store.saved == []
+    assert store.get_facts(DOCUMENT_ID) == []
 
 
-async def test_extract_returns_candidate():
-    store = FakeStore()
-    store.documents["doc1"] = Document(
-        document_id="doc1", filename="a.md", content="# A\nhello\n# B\nworld"
-    )
-
+async def test_extract_returns_candidate(store: SqliteFactStore):
     facts = Facts(store, stub_extractor("c", "world"))
 
-    result = await facts.extract("doc1", 2)
+    result = await facts.extract(DOCUMENT_ID, 2)
+
     assert result == FactDraft(claim="c", evidence_quote="world", source_sequence=2)
 
 
-async def test_extract_rejects_quote_not_in_span():
-    store = FakeStore()
-    store.documents["doc1"] = Document(
-        document_id="doc1", filename="a.md", content="# A\nhello\n# B\nworld"
-    )
-
+async def test_extract_rejects_quote_not_in_span(store: SqliteFactStore):
     facts = Facts(store, stub_extractor("c", "nothing"))
+
     with pytest.raises(EvidenceNotInSourceSpan):
-        _ = await facts.extract("doc1", 1)
+        _ = await facts.extract(DOCUMENT_ID, 1)
 
 
-async def test_extract_rejects_unknown_document():
-    store = FakeStore()
-    store.documents["doc1"] = Document(
-        document_id="doc1", filename="a.md", content="# A\nhello\n# B\nworld"
-    )
+async def test_extract_rejects_unknown_document(store: SqliteFactStore):
+    facts = Facts(store, stub_extractor("c", "world"))
 
-    facts = Facts(store, stub_extractor("c", "nothing"))
     with pytest.raises(SourceSpanNotFound):
         _ = await facts.extract("nope", 1)
 
 
-async def test_extract_rejects_unknown_sequence():
-    store = FakeStore()
-    store.documents["doc1"] = Document(
-        document_id="doc1", filename="a.md", content="# A\nhello\n# B\nworld"
-    )
+async def test_extract_rejects_unknown_sequence(store: SqliteFactStore):
+    facts = Facts(store, stub_extractor("c", "world"))
 
-    facts = Facts(store, stub_extractor("c", "nothing"))
     with pytest.raises(SourceSpanNotFound):
-        _ = await facts.extract("doc1", 99)
+        _ = await facts.extract(DOCUMENT_ID, 99)

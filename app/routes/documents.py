@@ -3,8 +3,9 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, UploadFile
 
-from app.database import save_document_to_db
-from app.dependencies import get_facts
+from app.database import SqliteFactStore
+from app.dependencies import get_facts, get_store
+from app.schema import Document
 from app.services.facts import Facts
 from app.services.markdown import make_source_span
 
@@ -14,6 +15,7 @@ router = APIRouter()
 @router.post("/documents/import")
 async def import_document(
     file: UploadFile,
+    store: Annotated[SqliteFactStore, Depends(get_store)],
 ):
 
     document_id = str(uuid4())
@@ -21,7 +23,13 @@ async def import_document(
     contents = await file.read()
     content = contents.decode("utf-8")
 
-    save_document_to_db(document_id, file.filename or "uploaded.md", content)
+    store.save_document(
+        Document(
+            document_id=document_id,
+            filename=file.filename or "uploaded.md",
+            content=content,
+        )
+    )
 
     spans = make_source_span(content)
 

@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.database import init_db
 from app.routes import documents, fact
 from app.services.facts import EvidenceNotInSourceSpan, SourceSpanNotFound
 
@@ -21,6 +20,3 @@ async def evidence_not_in_source_span(_request: Request, _exc: EvidenceNotInSour
     return JSONResponse(
         status_code=422, content={"detail": "Evidence not found in source span"}
     )
-
-
-init_db()

@@ -1,7 +1,7 @@
 from collections.abc import Awaitable, Callable
-from typing import Protocol
 
-from app.schema import Document, FactDraft, ModelFactOutput, SourceSpan
+from app.database import SqliteFactStore
+from app.schema import FactDraft, ModelFactOutput, SourceSpan
 from app.services.markdown import get_span_by_sequence, make_source_span
 
 
@@ -16,25 +16,17 @@ class SourceSpanNotFound(Exception):
         self.sequence: int = sequence
 
 
-class FactStore(Protocol):
-    def get_document_from_db(self, document_id: str) -> Document | None: ...
-
-    def save_fact_to_db(
-        self, document_id: str, claim: str, evidence_quote: str, source_sequence: int
-    ) -> None: ...
-
-
 class Facts:
     def __init__(
         self,
-        store: FactStore,
+        store: SqliteFactStore,
         extractor: Callable[[SourceSpan], Awaitable[ModelFactOutput]],
     ) -> None:
-        self.store: FactStore = store
+        self.store: SqliteFactStore = store
         self.extractor: Callable[[SourceSpan], Awaitable[ModelFactOutput]] = extractor
 
     def _locate_span(self, document_id: str, sequence: int) -> SourceSpan:
-        document = self.store.get_document_from_db(document_id)
+        document = self.store.get_document(document_id)
         if document is None:
             raise SourceSpanNotFound(document_id, sequence)
         source_spans = make_source_span(document.content)
@@ -54,14 +46,8 @@ class Facts:
         span = self._locate_span(document_id, fact_draft.source_sequence)
 
         self._check_evidence(span, fact_draft.evidence_quote)
-        self.store.save_fact_to_db(
-            document_id,
-            fact_draft.claim,
-            fact_draft.evidence_quote,
-            fact_draft.source_sequence,
-        )
+        self.store.save_fact(document_id, fact_draft)
 
-    # 从 span 抽一条候选
     async def extract(self, document_id: str, sequence: int) -> FactDraft:
         span = self._locate_span(document_id, sequence)
         output = await self.extractor(span)
