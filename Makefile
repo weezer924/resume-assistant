@@ -7,7 +7,7 @@ dev:
 	uv run --env-file .env fastapi dev --no-reload app/main.py
 
 debug:
-	uv run --env-file .env python -m debugpy --listen 127.0.0.1:5678 --wait-for-client -m uvicorn app.main:app --port 8000
+	uv run --env-file .env python -m debugpy --listen 127.0.0.1:5678 -m uvicorn app.main:app --port 8000
 
 lint:
 	uv run ruff check .
