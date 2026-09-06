@@ -4,20 +4,17 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, UploadFile
 
 from app.database import save_document_to_db
-from app.dependencies import get_facts_by_LLM
+from app.dependencies import get_facts
 from app.services.facts import Facts
+from app.services.markdown import make_source_span
 
 router = APIRouter()
 
 
 @router.post("/documents/import")
 async def import_document(
-    facts: Annotated[Facts, Depends(get_facts_by_LLM)],
-    file: UploadFile | None = None,
-    sequence: int = 2,
+    file: UploadFile,
 ):
-    if not file:
-        return {"message": "No upload file sent"}
 
     document_id = str(uuid4())
 
@@ -26,9 +23,16 @@ async def import_document(
 
     save_document_to_db(document_id, file.filename or "uploaded.md", content)
 
-    fact_draft = await facts.extract(document_id, sequence)
+    spans = make_source_span(content)
 
-    return {
-        "document_id": document_id,
-        "fact_draft": fact_draft.model_dump(),
-    }
+    return {"document_id": document_id, "spans": spans}
+
+
+@router.post("/documents/{document_id}/spans/{sequence}/draft")
+async def post_document_drafts(
+    document_id: str,
+    sequence: int,
+    facts: Annotated[Facts, Depends(get_facts)],
+):
+    fact_draft = await facts.extract(document_id, sequence)
+    return {"fact_draft": fact_draft.model_dump()}

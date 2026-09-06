@@ -13,5 +13,8 @@ lint:
 	uv run ruff check .
 	uv run basedpyright
 
+fix-ruff:
+	uv run ruff check --fix . && uv run ruff format .
+
 test:
 	uv run pytest -s
