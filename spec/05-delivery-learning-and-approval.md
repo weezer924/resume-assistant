@@ -10,11 +10,13 @@ Deliverable:
 - one Responses API call
 - one Pydantic structured Fact output
 - one locally saved Run record
-- one inspectable CLI or minimal display of the result
+- one inspectable minimal display of the result
 
 Acceptance:
 
 - The owner can explain request input, prompt, schema, response, validation, and persisted result.
+    Anwser:
+        
 - Invalid structured output produces a visible failure rather than silently continuing.
 - Model and prompt identifiers are configuration, not buried in business logic.
 - No RAG, Agent, or full UI is required yet.

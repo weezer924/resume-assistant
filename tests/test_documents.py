@@ -20,14 +20,19 @@ def client(tmp_path: Path) -> Iterator[TestClient]:
 
 
 def test_import_document_with_file(client: TestClient):
+    sample = Path(__file__).parent / "fixtures" / "sample_resume.md"
+
+    files = {"file": ("sample_resume.md", sample.read_bytes(), "text/markdown")}
+
     response = client.post(
         "/documents/import",
-        files={"file": ("a.md", b"Jack\n# Experience\nfoo", "text/markdown")},
+        files=files,
     )
-
     assert response.status_code == 200
     spans = cast(list[object], response.json()["spans"])
-    assert len(spans) == 2
+    first = cast(dict[str, object], spans[0])
+    assert first["section"] == "職務経歴書"
+    assert len(spans) == 9
 
 
 def test_import_document_no_file(client: TestClient):
