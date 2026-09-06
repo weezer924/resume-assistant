@@ -5,5 +5,5 @@ from app.services.fact_extraction import OpenAIExtractor
 from app.services.facts import Facts
 
 
-def get_facts_by_LLM() -> Facts:
+def get_facts() -> Facts:
     return Facts(SqliteFactStore(), OpenAIExtractor(AsyncOpenAI(), "gpt-5-mini"))
