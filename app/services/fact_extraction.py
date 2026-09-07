@@ -2,15 +2,25 @@ from openai import AsyncOpenAI
 
 from app.schema import ModelFactOutput, SourceSpan
 
+PROMPT_ID = "fact_extraction"
+PROMPT_VERSION = "1.0"  # updated whenever the prompt changes
+PROMPT = (
+    "Extract one factual resume claim from the supplied source span. "
+    "Do not add information not present in the source. "
+    "The evidence_quote must be copied exactly from the source."
+)
+
 
 class OpenAIExtractor:
     def __init__(
         self,
-        openAI: AsyncOpenAI,
+        client: AsyncOpenAI,
         model: str,
     ) -> None:
-        self.client: AsyncOpenAI = openAI
+        self.client: AsyncOpenAI = client
         self.model: str = model
+        self.prompt_id: str = PROMPT_ID
+        self.prompt_version: str = PROMPT_VERSION
 
     async def __call__(self, source_span: SourceSpan) -> ModelFactOutput:
         response = await self.client.responses.parse(
@@ -18,11 +28,7 @@ class OpenAIExtractor:
             input=[
                 {
                     "role": "developer",
-                    "content": (
-                        "Extract one factual resume claim from the supplied source span. "
-                        "Do not add information not present in the source. "
-                        "The evidence_quote must be copied exactly from the source."
-                    ),
+                    "content": PROMPT,
                 },
                 {
                     "role": "user",
