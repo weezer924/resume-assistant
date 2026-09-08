@@ -39,3 +39,41 @@ def test_import_document_no_file(client: TestClient):
     response = client.post("/documents/import")
 
     assert response.status_code == 422
+
+
+def test_import_document_empty_file(client: TestClient):
+    files = {"file": ("empty.md", b"", "text/markdown")}
+
+    response = client.post(
+        "/documents/import",
+        files=files,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Uploaded file is empty"
+
+
+def test_import_document_non_utf8_file(client: TestClient):
+    files = {"file": ("non_utf8.md", b"\xff", "text/markdown")}
+
+    response = client.post(
+        "/documents/import",
+        files=files,
+    )
+
+    assert response.status_code == 422
+    assert (
+        response.json()["detail"] == "Uploaded file must be a UTF-8 encoded text file"
+    )
+
+
+def test_import_document_file_with_only_empty_lines(client: TestClient):
+    files = {"file": ("only_empty_lines.md", b"\n\n\n", "text/markdown")}
+
+    response = client.post(
+        "/documents/import",
+        files=files,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Uploaded file is empty"

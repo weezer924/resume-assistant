@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
 from app.database import SqliteFactStore
 from app.dependencies import get_facts, get_store
@@ -21,7 +21,16 @@ async def import_document(
     document_id = str(uuid4())
 
     contents = await file.read()
-    content = contents.decode("utf-8")
+
+    try:
+        content = contents.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(
+            status_code=422, detail="Uploaded file must be a UTF-8 encoded text file"
+        )
+
+    if content.strip() == "":
+        raise HTTPException(status_code=422, detail="Uploaded file is empty")
 
     store.save_document(
         Document(

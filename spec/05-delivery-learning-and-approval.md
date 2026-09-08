@@ -25,16 +25,18 @@ Acceptance:
 
 Deliverable:
 
-- Markdown, and TXT parsing
+- Markdown parsing
 - Document and immutable SourceSpan persistence
 - candidate Fact extraction linked to SourceSpans
 
 Acceptance:
 
-- Paragraph and table-cell provenance can be inspected.
-- Reimported unchanged content is detected by hash.
-- Parse failures are explicit.
+- Each candidate Fact can be traced to its persisted SourceSpan and exact source text.
+- Existing SourceSpan text and sequence remain unchanged when parsing rules change.
+- Empty or invalid UTF-8 input produces an explicit failure.
 - SourceSpan text is never edited through Fact editing.
+
+我把模型生成的声明和原始证据分开保存。来源编号由程序确定，原文片段在导入时固定下来，避免解析规则变化破坏历史溯源。模型输出出现问题时，可以找回当时使用的输入进行排查。
 
 ### Week 3 — Fact confirmation and JobRequirement extraction
 

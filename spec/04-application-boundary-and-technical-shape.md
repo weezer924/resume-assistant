@@ -100,15 +100,12 @@ Frontend testing should consume approximately 10–15% of project effort. Test c
 
 ### 15.1 v1
 
-- DOCX
 - Markdown
-- UTF-8 or UTF-8-BOM TXT
 - pasted job description
 - pasted LinkedIn profile text
-- relevant LinkedIn export CSV when its schema is explicitly supported
-- selected project notes in supported text formats
+- selected project notes in Markdown
 
-DOCX parsing must include paragraphs and table cells and retain source coordinates. Markdown is parsed as structured tokens rather than converted to presentation HTML first.
+Markdown is parsed as structured tokens rather than converted to presentation HTML first.
 
 ### 15.2 Parsing failure behavior
 
@@ -214,7 +211,6 @@ The 8–10 week release does not include:
 - Alembic with SQLite batch migrations
 - SQLite with foreign keys enabled and strict tables where appropriate
 - LanceDB Python in local embedded mode
-- `python-docx`
 - `markdown-it-py`
 - pytest and FastAPI TestClient/HTTPX
 
