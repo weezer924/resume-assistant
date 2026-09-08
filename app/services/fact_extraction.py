@@ -19,8 +19,6 @@ class OpenAIExtractor:
     ) -> None:
         self.client: AsyncOpenAI = client
         self.model: str = model
-        self.prompt_id: str = PROMPT_ID
-        self.prompt_version: str = PROMPT_VERSION
 
     async def __call__(self, source_span: SourceSpan) -> ModelFactOutput:
         response = await self.client.responses.parse(

@@ -1,7 +1,7 @@
 import sqlite3
 from typing import cast
 
-from app.schema import Document, FactDraft
+from app.schema import Document, FactDraft, ModelFactRun
 
 
 class SqliteFactStore:
@@ -27,6 +27,24 @@ class SqliteFactStore:
                     claim TEXT NOT NULL,
                     evidence_quote TEXT NOT NULL,
                     source_sequence INTEGER NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (document_id) REFERENCES documents(document_id)
+                )
+            """)
+
+            _ = connection.execute("""
+                CREATE TABLE IF NOT EXISTS model_fact_run (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    document_id TEXT NOT NULL,
+                    source_sequence INTEGER NOT NULL,
+                    model TEXT NOT NULL,
+                    prompt_id TEXT NOT NULL,
+                    prompt_version TEXT NOT NULL,
+                    start_at REAL NOT NULL,
+                    completed_at REAL NOT NULL,
+                    status TEXT NOT NULL,
+                    output TEXT,
+                    error TEXT,
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (document_id) REFERENCES documents(document_id)
                 )
@@ -94,5 +112,100 @@ class SqliteFactStore:
             rows = cast(list[tuple[str, str, int]], cursor.fetchall())
             return [
                 FactDraft(claim=row[0], evidence_quote=row[1], source_sequence=row[2])
+                for row in rows
+            ]
+
+    def save_model_fact_run(self, model_fact_run: ModelFactRun) -> int:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO model_fact_run (
+                    document_id,
+                    source_sequence,
+                    model,
+                    prompt_id,
+                    prompt_version,
+                    start_at,
+                    completed_at,
+                    status,
+                    output,
+                    error
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    model_fact_run.document_id,
+                    model_fact_run.source_sequence,
+                    model_fact_run.model,
+                    model_fact_run.prompt_id,
+                    model_fact_run.prompt_version,
+                    model_fact_run.start_at,
+                    model_fact_run.completed_at,
+                    model_fact_run.status,
+                    model_fact_run.output,
+                    model_fact_run.error,
+                ),
+            )
+
+            if cursor.lastrowid is None:
+                raise ValueError("Failed to insert model_fact_run")
+
+            return cursor.lastrowid
+
+    def get_model_fact_run(self, run_id: int) -> ModelFactRun | None:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                SELECT document_id, source_sequence, model, prompt_id, prompt_version, start_at, completed_at, status, output, error
+                FROM model_fact_run
+                WHERE id = ?
+                """,
+                (run_id,),
+            )
+            row = cast(
+                tuple[str, int, str, str, str, float, float, str, str, str] | None,
+                (cursor.fetchone()),
+            )
+            if row is None:
+                return None
+            return ModelFactRun(
+                document_id=row[0],
+                source_sequence=row[1],
+                model=row[2],
+                prompt_id=row[3],
+                prompt_version=row[4],
+                start_at=row[5],
+                completed_at=row[6],
+                status=row[7],
+                output=row[8],
+                error=row[9],
+            )
+
+    def get_model_fact_runs(self, document_id: str) -> list[ModelFactRun]:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                SELECT document_id, source_sequence, model, prompt_id, prompt_version, start_at, completed_at, status, output, error
+                FROM model_fact_run
+                WHERE document_id = ?
+                """,
+                (document_id,),
+            )
+            rows: list[tuple[str, int, str, str, str, float, float, str, str, str]] = (
+                cursor.fetchall()
+            )
+            return [
+                ModelFactRun(
+                    document_id=row[0],
+                    source_sequence=row[1],
+                    model=row[2],
+                    prompt_id=row[3],
+                    prompt_version=row[4],
+                    start_at=row[5],
+                    completed_at=row[6],
+                    status=row[7],
+                    output=row[8],
+                    error=row[9],
+                )
                 for row in rows
             ]

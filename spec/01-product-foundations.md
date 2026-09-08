@@ -92,14 +92,6 @@ The application may be shown locally to a small number of reviewers. Reviewers d
 6. Only confirmed facts become eligible for retrieval and generation.
 7. The retrieval projection is refreshed from the confirmed facts.
 
-1. 用户导入一份受支持的职业相关文档。
-2. 应用程序在本地解析该文档，将其转化为稳定的源文本片段。
-3. 提取模型生成结构化的候选事实。
-4. 用户界面展示每项候选事实及其对应的确切源文本摘录。
-5. 用户对该事实进行确认、编辑、拒绝或将其标记为待处理。
-6. 只有经确认的事实才会被纳入检索与生成流程。
-7. 检索投影基于已确认的事实进行更新。
-
 ### 4.2 Job analysis
 
 1. The user pastes a target job description.
