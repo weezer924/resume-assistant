@@ -163,7 +163,31 @@ Acceptance:
 - The owner can present the product, architecture, one success, two failures, and key trade-offs in ten minutes.
 - Claims in public documentation match implemented evidence and do not imply multi-agent, OCR, fine-tuning, or production-scale deployment.
 
-## 21. Demo narrative
+## 21. Explicit non-goals
+
+The 8–10 week release does not include:
+
+- public hosted service
+- user registration, OAuth, or multi-user authorization
+- Gmail, Google Drive, or LinkedIn account integrations
+- automatic website crawling
+- scanned-document OCR
+- image/VLM document understanding
+- digital PDF support unless added after core completion
+- autonomous Agent control of the core pipeline
+- multi-agent systems
+- MCP or A2A integration
+- LangChain or LangGraph outside the Evidence Agent
+- fine-tuning or model training
+- self-improving or Meta Agent behavior
+- open-ended autonomous exploration
+- automatic job application submission
+- full DOCX/PDF resume layout generation
+- mobile-specific layout work
+- public real-time API use
+- conventional data-science model development or feature-engineering claims
+
+## 22. Demo narrative
 
 The ten-minute portfolio demonstration follows this structure:
 
@@ -174,7 +198,7 @@ The ten-minute portfolio demonstration follows this structure:
 5. **Agent — 1 minute:** run a bounded deeper investigation and inspect the tool timeline.
 6. **Engineering trade-offs — 2 minutes:** explain SQLite/LanceDB, fixed pipeline versus Agent, local privacy, and excluded technologies.
 
-## 22. Learning and collaboration protocol
+## 23. Learning and collaboration protocol
 
 Core implementation is owner-written.
 
@@ -190,7 +214,7 @@ For each ticket, assistance follows this sequence:
 
 Agent-generated work is not counted as owner practice. Boilerplate assistance must remain distinguishable from owner-implemented AI pipeline, retrieval, evaluation, and safety logic.
 
-## 23. Deferred decisions
+## 24. Deferred decisions
 
 The following are intentionally deferred until representative data exists:
 
@@ -205,7 +229,7 @@ The following are intentionally deferred until representative data exists:
 
 Each decision must be made from a fixed evaluation comparison rather than preference alone.
 
-## 24. Specification approval checklist
+## 25. Specification approval checklist
 
 Before implementation begins, confirm that:
 

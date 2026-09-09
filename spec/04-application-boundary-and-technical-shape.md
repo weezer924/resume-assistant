@@ -173,84 +173,22 @@ Forbidden public content:
 - Object IDs or logs that can identify real people or business records
 - private evaluation outputs
 
-## 17. Explicit non-goals
+## 17. Technology stack
 
-The 8–10 week release does not include:
+spec/TechnologyStack.md
 
-- public hosted service
-- user registration, OAuth, or multi-user authorization
-- Gmail, Google Drive, or LinkedIn account integrations
-- automatic website crawling
-- scanned-document OCR
-- image/VLM document understanding
-- digital PDF support unless added after core completion
-- autonomous Agent control of the core pipeline
-- multi-agent systems
-- MCP or A2A integration
-- LangChain or LangGraph outside the Evidence Agent
-- fine-tuning or model training
-- self-improving or Meta Agent behavior
-- open-ended autonomous exploration
-- automatic job application submission
-- full DOCX/PDF resume layout generation
-- mobile-specific layout work
-- public real-time API use
-- conventional data-science model development or feature-engineering claims
-
-## 18. Technology stack
-
-### 18.1 Backend
-
-- CPython 3.12
-- `uv`, `pyproject.toml`, and committed `uv.lock`
-- FastAPI
-- Pydantic v2 and `pydantic-settings`
-- official OpenAI Python SDK and Responses API
-- LangGraph with `langchain-openai` for the bounded Evidence Agent
-- SQLAlchemy 2.x
-- Alembic with SQLite batch migrations
-- SQLite with foreign keys enabled and strict tables where appropriate
-- LanceDB Python in local embedded mode
-- `markdown-it-py`
-- pytest and FastAPI TestClient/HTTPX
-
-The initial backend may use synchronous SQLAlchemy sessions. Async database access is not a v1 requirement.
-
-### 18.2 Frontend
-
-- Node.js 24 LTS baseline
-- pnpm with committed lockfile
-- current stable Next.js release at initialization time
-- React 19
-- TypeScript 5+
-- App Router
-- Vitest
-- React Testing Library
-- Playwright
-
-### 18.3 Runtime and local development
-
-Docker is not required for v1 because SQLite and LanceDB are local files and both application processes run locally. Docker may be added later only when it solves a verified reproducibility, deployment, or CI problem.
-
-### 18.4 Dependency rules
-
-- Exact dependency versions are locked at project initialization.
-- Business logic does not depend directly on model names.
-- Framework abstractions must not hide prompt inputs, context, tool calls, usage, or errors from the Run record.
-- LangGraph is a v1 dependency scoped to the Evidence Agent. Any further AI framework requires a measured use case and an evaluation comparison before adoption.
-
-## 19. Repository and artifact layout
+## 18. Repository and artifact layout
 
 This section defines responsibility boundaries, not mandatory implementation details.
 
 ```text
 resume-assistant/
-  backend/
+  app/
     application and evaluation packages
   frontend/
     local web application
-  prompts/
-    versioned prompt sources and manifest
+  test/
+    unit test
   database/
     public synthetic fixtures and expected behavior
   reports/
@@ -260,5 +198,3 @@ resume-assistant/
   private/
     local-only gitignored data and outputs
 ```
-
-The exact code directory structure is chosen during implementation and reviewed against module depth and responsibility, not copied mechanically from this outline.
