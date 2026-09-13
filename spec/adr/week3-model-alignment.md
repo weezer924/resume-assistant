@@ -2,7 +2,7 @@
 
 状态：Jack 已于 2026-09-13 批准本对照表；不代表完整规格获批，不包含代码实现。
 
-对照来源：`02-data-model-and-fixed-pipeline.md`、`milestones-acceptance-criteria.md`，以及当前 schema、数据库和确认接口。
+对照来源：[数据模型](../02-data-model.md)、[业务规则与固定流程](../03-domain-invariants-pipeline.md)、[周计划与验收](../08-milestones-acceptance-criteria.md)，以及当前 schema、数据库和确认接口。
 
 ## 1. 范围与当前事实
 

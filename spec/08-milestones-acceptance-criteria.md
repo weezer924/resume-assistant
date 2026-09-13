@@ -1,4 +1,4 @@
-## 20. Milestones and acceptance criteria
+## 19. Milestones and acceptance criteria
 
 The schedule assumes at least 12 hours per week and owner-led implementation.
 
@@ -169,7 +169,7 @@ Acceptance:
 - The owner can present the product, architecture, one success, two failures, and key trade-offs in ten minutes.
 - Claims in public documentation match implemented evidence and do not imply multi-agent, OCR, fine-tuning, or production-scale deployment.
 
-## 21. Explicit non-goals
+## 20. Explicit non-goals
 
 The 8–10 week release does not include:
 
@@ -193,7 +193,7 @@ The 8–10 week release does not include:
 - public real-time API use
 - conventional data-science model development or feature-engineering claims
 
-## 22. Demo narrative
+## 21. Demo narrative
 
 The ten-minute portfolio demonstration follows this structure:
 
@@ -204,7 +204,7 @@ The ten-minute portfolio demonstration follows this structure:
 5. **Agent — 1 minute:** run a bounded deeper investigation and inspect the tool timeline.
 6. **Engineering trade-offs — 2 minutes:** explain SQLite/LanceDB, fixed pipeline versus Agent, local privacy, and excluded technologies.
 
-## 23. Learning and collaboration protocol
+## 22. Learning and collaboration protocol
 
 Core implementation is owner-written.
 
@@ -220,7 +220,7 @@ For each ticket, assistance follows this sequence:
 
 Agent-generated work is not counted as owner practice. Boilerplate assistance must remain distinguishable from owner-implemented AI pipeline, retrieval, evaluation, and safety logic.
 
-## 24. Deferred decisions
+## 23. Deferred decisions
 
 The following are intentionally deferred until representative data exists:
 
@@ -235,7 +235,7 @@ The following are intentionally deferred until representative data exists:
 
 Each decision must be made from a fixed evaluation comparison rather than preference alone.
 
-## 25. Specification approval checklist
+## 24. Specification approval checklist
 
 Before implementation begins, confirm that:
 

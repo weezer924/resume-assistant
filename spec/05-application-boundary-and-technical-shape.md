@@ -173,28 +173,4 @@ Forbidden public content:
 - Object IDs or logs that can identify real people or business records
 - private evaluation outputs
 
-## 17. Technology stack
-
-spec/TechnologyStack.md
-
-## 18. Repository and artifact layout
-
-This section defines responsibility boundaries, not mandatory implementation details.
-
-```text
-resume-assistant/
-  app/
-    application and evaluation packages
-  frontend/
-    local web application
-  test/
-    unit test
-  database/
-    public synthetic fixtures and expected behavior
-  reports/
-    sanitized, reproducible public reports
-  docs/
-    architecture, runbook, demo, and decisions
-  private/
-    local-only gitignored data and outputs
-```
+See [Technology stack](06-technology-stack.md) and [Repository layout](07-repository-layout.md) for the engineering references.

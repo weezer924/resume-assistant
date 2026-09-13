@@ -1,6 +1,6 @@
-##  Technology stack
+## 17. Technology stack
 
-### 1 Backend
+### 17.1 Backend
 
 - CPython 3.12
 - `uv`, `pyproject.toml`, and committed `uv.lock`
@@ -17,7 +17,7 @@
 
 The initial backend may use synchronous SQLAlchemy sessions. Async database access is not a v1 requirement.
 
-### 2 Frontend
+### 17.2 Frontend
 
 - Node.js 24 LTS baseline
 - pnpm with committed lockfile
