@@ -32,15 +32,16 @@ async def import_document(
     if content.strip() == "":
         raise HTTPException(status_code=422, detail="Uploaded file is empty")
 
-    store.save_document(
+    spans = make_source_span(content)
+
+    store.save_document_with_spans(
         Document(
             document_id=document_id,
             filename=file.filename or "uploaded.md",
             content=content,
-        )
+        ),
+        spans,
     )
-
-    spans = make_source_span(content)
 
     return {"document_id": document_id, "spans": spans}
 

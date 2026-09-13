@@ -25,6 +25,23 @@ def store(tmp_path: Path) -> SqliteFactStore:
             document_id=DOCUMENT_ID, filename="a.md", content="# A\nhello\n# B\nworld"
         )
     )
+
+    source_span_1 = SourceSpan(
+        section="A",
+        level=1,
+        body="hello",
+        sequence=1,
+    )
+
+    source_span_2 = SourceSpan(
+        section="B",
+        level=1,
+        body="world",
+        sequence=2,
+    )
+
+    store.save_source_span(DOCUMENT_ID, source_span_1)
+    store.save_source_span(DOCUMENT_ID, source_span_2)
     return store
 
 
@@ -184,6 +201,30 @@ async def test_extract_modal_fact_completed(store: SqliteFactStore):
     assert run.output is not None
     saved_output = ModelFactOutput.model_validate_json(run.output)
     assert saved_output == ModelFactOutput(claim="c", evidence_quote="world")
+
+
+async def test_is_using_extract_modal_fact(store: SqliteFactStore):
+    document = Document(document_id="doc", filename="doc.md", content="# A\nold text")
+    saved_source_span = SourceSpan(
+        section="",
+        level=1,
+        body="saved text",
+        sequence=1,
+    )
+
+    store.save_document_with_spans(document, [saved_source_span])
+
+    facts = Facts(
+        store, stub_extractor("c", "saved text"), "model", "prompt_id", "prompt_version"
+    )
+
+    fact_draft = await facts.extract(document.document_id, 1)
+
+    assert fact_draft == FactDraft(
+        claim="c",
+        evidence_quote="saved text",
+        source_sequence=1,
+    )
 
 
 async def test_extract_output_parsed_none():

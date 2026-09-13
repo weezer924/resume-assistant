@@ -3,7 +3,6 @@ from collections.abc import Awaitable, Callable
 
 from app.database import SqliteFactStore
 from app.schema import FactDraft, ModelFactOutput, ModelFactRun, SourceSpan
-from app.services.markdown import get_span_by_sequence, make_source_span
 
 
 class EvidenceNotInSourceSpan(Exception):
@@ -36,14 +35,13 @@ class Facts:
         document = self.store.get_document(document_id)
         if document is None:
             raise SourceSpanNotFound(document_id, sequence)
-        source_spans = make_source_span(document.content)
 
-        selected_span = get_span_by_sequence(source_spans, sequence)
+        saved_source_spans = self.store.get_source_span(document_id, sequence)
 
-        if selected_span is None:
+        if saved_source_spans is None:
             raise SourceSpanNotFound(document_id, sequence)
 
-        return selected_span
+        return saved_source_spans
 
     def _check_evidence(self, span: SourceSpan, evidence_quote: str) -> None:
         if evidence_quote not in span["body"]:

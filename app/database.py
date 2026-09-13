@@ -1,7 +1,7 @@
 import sqlite3
 from typing import cast
 
-from app.schema import Document, FactDraft, ModelFactRun
+from app.schema import Document, FactDraft, ModelFactRun, SourceSpan
 
 
 class SqliteFactStore:
@@ -50,6 +50,19 @@ class SqliteFactStore:
                 )
             """)
 
+            _ = connection.execute("""
+                CREATE TABLE IF NOT EXISTS source_spans (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    document_id TEXT NOT NULL,
+                    section TEXT NOT NULL,
+                    level INTEGER NOT NULL,
+                    body TEXT NOT NULL,
+                    sequence INTEGER NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (document_id) REFERENCES documents(document_id)
+                )
+            """)
+
     def save_document(self, document: Document):
         with sqlite3.connect(self.db_path) as connection:
             _ = connection.execute(
@@ -74,6 +87,68 @@ class SqliteFactStore:
             if row is None:
                 return None
             return Document(document_id=row[0], filename=row[1], content=row[2])
+
+    def get_source_span(self, document_id: str, sequence: int) -> SourceSpan | None:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                SELECT section, level, body, sequence
+                FROM source_spans
+                WHERE document_id = ? AND sequence = ?
+                """,
+                (document_id, sequence),
+            )
+            row = cast(tuple[str, int, str, int] | None, cursor.fetchone())
+            if row is None:
+                return None
+            return {
+                "section": row[0],
+                "level": row[1],
+                "body": row[2],
+                "sequence": row[3],
+            }
+
+    def save_source_span(self, document_id: str, source_span: SourceSpan) -> None:
+        with sqlite3.connect(self.db_path) as connection:
+            _ = connection.execute(
+                """
+                INSERT INTO source_spans (document_id, section, level, body, sequence)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    document_id,
+                    source_span["section"],
+                    source_span["level"],
+                    source_span["body"],
+                    source_span["sequence"],
+                ),
+            )
+
+    def save_document_with_spans(
+        self, document: Document, source_spans: list[SourceSpan]
+    ) -> None:
+        with sqlite3.connect(self.db_path) as connection:
+            _ = connection.execute(
+                """
+                INSERT INTO documents (document_id, filename, content)
+                VALUES (?, ?, ?)
+                """,
+                (document.document_id, document.filename, document.content),
+            )
+            for source_span in source_spans:
+                _ = connection.execute(
+                    """
+                    INSERT INTO source_spans (document_id, section, level, body, sequence)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        document.document_id,
+                        source_span["section"],
+                        source_span["level"],
+                        source_span["body"],
+                        source_span["sequence"],
+                    ),
+                )
 
     def save_fact(
         self,
