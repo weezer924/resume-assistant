@@ -42,16 +42,21 @@ Acceptance:
 
 Deliverable:
 
-- Fact status workflow
-- confirm/edit/reject UI
+- Fact status workflow， add status to facts
+- a connected import → extraction → confirm/edit/reject UI
 - pasted job input and structured requirements
-- SQLite migrations
+- SQLite migrations, update facts add status
 
 Acceptance:
 
 - Pending and rejected Facts cannot enter generation eligibility.
 - A user edit preserves original extraction and evidence.
+- The UI carries document and candidate identifiers through the workflow, displays source evidence and review status, and reports errors without requiring manual API calls.
 - Job requirements have stable IDs and required/preferred classification.
+
+- 待确认、已拒绝的 Fact 不能用于后续生成。
+- 用户编辑不会丢失原始抽取和证据。
+- 职位要求有稳定 ID，并标明 required / preferred。
 
 ### Week 4 — Retrieval baseline
 
@@ -67,6 +72,8 @@ Acceptance:
 - Only confirmed Facts are retrieved by default.
 - Retrieval candidates, scores, ranks, and selected Evidence IDs are persisted.
 - The same cases compare vector-only, full-text-only, and hybrid results.
+
+你提供职位要求原文，LLM 提取结构化职位要求，根据各项要求，检索履历中已确认的 Fact＋对应 SourceSpan，LLM 根据检索到的证据，生成带引用的简历改进建议
 
 ### Week 5 — Evidence-backed suggestion generation
 
@@ -150,11 +157,10 @@ Acceptance:
 
 Deliverable:
 
-- 40–60 public cases
-- 10–20 private cases
-- final sanitized evaluation report
+- a public evaluation suite covering the agreed core cases and observed failure modes, without a fixed case-count target
+- private real-use cases when available, kept local and excluded from Git, without a fixed case-count target
+- a final sanitized, reproducible evaluation report stating dataset coverage and limitations
 - README, architecture explanation, local runbook, and demo script
-- short recorded fallback demo
 
 Acceptance:
 

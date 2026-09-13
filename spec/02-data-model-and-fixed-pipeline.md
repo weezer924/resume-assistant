@@ -79,7 +79,6 @@ Common fields:
 | `skills` | Supported technologies or competencies |
 | `attributes` | Fact-type-specific validated fields |
 | `status` | Pending, confirmed, rejected, or conflicting |
-| `extraction_confidence` | Model-reported extraction confidence; not trust status |
 | `created_at` | Creation timestamp |
 | `updated_at` | Last modification timestamp |
 | `confirmed_at` | Human confirmation timestamp |
@@ -121,9 +120,9 @@ JobRequirement fields include:
 - `requirement_text`
 - `normalized_requirement`
 - `required_or_preferred`
-- `priority`
 - `years_or_level`, when explicitly stated
-- `status`
+
+`JobRequirement.priority` and `JobRequirement.status` are deferred until a concrete consumer requires them. This does not defer the Fact review status workflow.
 
 ### 6.7 RetrievalCandidate
 
