@@ -15,10 +15,10 @@ async def post_fact_draft(
     facts: Annotated[Facts, Depends(get_facts)],
 ):
 
-    facts.confirm(confirm_fact_request.document_id, confirm_fact_request.fact_draft)
+    confirmed = facts.confirm(confirm_fact_request.fact_id)
 
     return {
-        "message": "Fact saved",
-        "document_id": confirm_fact_request.document_id,
-        "fact": confirm_fact_request.fact_draft.model_dump(),
+        "message": "Fact confirmed",
+        "document_id": confirmed.document_id,
+        "fact": confirmed.model_dump(),
     }

@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from pydantic import BaseModel
 
@@ -14,17 +14,24 @@ class SourceSpan(TypedDict):
 
 
 # 抽取路径中，程序校验模型的原文引用后，补上选定片段的 source_sequence。
-# 草稿只返回给用户，不会自动保存为 Fact；用户通过确认接口提交后才保存。
+# 抽取成功后保存为 pending 候选；返回值包含数据库 ID 和审核信息。
 class FactDraft(BaseModel):
+    id: int
+    document_id: str
     claim: str
     evidence_quote: str
+    original_claim: str
     source_sequence: int
+    status: Literal["pending", "confirmed", "rejected"]
+    extraction_run_id: int | None
+    confirmed_at: str | None
+    created_at: str
+    updated_at: str
 
 
-# 用户提交待确认的草稿及其文档 ID；服务会重新校验来源和引用，再保存 Fact。
+# 确认只接收已有候选 ID；来源和引用从数据库读取。
 class ConfirmFactRequest(BaseModel):
-    document_id: str
-    fact_draft: FactDraft
+    fact_id: int
 
 
 class Document(BaseModel):
@@ -49,7 +56,7 @@ class ExtractionConfig(BaseModel):
 
 
 # 记录一次抽取使用的来源、模型和 prompt 配置、时间、结果及错误。
-# completed 表示抽取和引用校验成功，不表示用户已确认或已保存正式 Fact。
+# completed 表示抽取和引用校验成功，不表示用户已确认 Fact。
 # failed 表示模型调用或引用校验失败；保存失败记录后，服务仍向外抛出原异常。
 class ModelFactRun(BaseModel):
     document_id: str

@@ -6,7 +6,7 @@ import pytest
 from openai import AsyncOpenAI
 
 from app.database import SqliteFactStore
-from app.schema import Document, FactDraft, ModelFactOutput, SourceSpan
+from app.schema import Document, ModelFactOutput, SourceSpan
 from app.services.fact_extraction import OpenAIExtractor
 from app.services.facts import (
     EvidenceNotInSourceSpan,
@@ -60,56 +60,52 @@ async def fake_parse(**_kwargs: object):
     return SimpleNamespace(output_parsed=None)
 
 
-def test_confirm_saves_fact(store: SqliteFactStore):
+async def test_confirm_updates_pending_candidate(store: SqliteFactStore):
     facts = Facts(
-        store, stub_extractor("any", "any"), "model", "prompt_id", "prompt_version"
+        store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
     )
 
-    facts.confirm(
-        DOCUMENT_ID, FactDraft(claim="c", evidence_quote="world", source_sequence=2)
-    )
+    candidate = await facts.extract(DOCUMENT_ID, 2)
+    confirmed = facts.confirm(candidate.id)
 
-    assert store.get_facts(DOCUMENT_ID) == [
-        FactDraft(claim="c", evidence_quote="world", source_sequence=2)
-    ]
+    result = store.get_fact(candidate.id)
+
+    assert result is not None
+    assert result == confirmed
+    assert result.id == candidate.id
+    assert len(store.get_facts(DOCUMENT_ID)) == 1
+    assert result.status == "confirmed"
+    assert result.confirmed_at is not None
 
 
-def test_confirm_rejects_quote_not_in_span(store: SqliteFactStore):
+@pytest.mark.parametrize(
+    ("document_id", "quote", "sequence", "error"),
+    [
+        (DOCUMENT_ID, "nothing", 2, EvidenceNotInSourceSpan),
+        ("nope", "world", 2, SourceSpanNotFound),
+        (DOCUMENT_ID, "world", 99, SourceSpanNotFound),
+    ],
+)
+async def test_confirm_rechecks_saved_evidence(
+    store: SqliteFactStore,
+    document_id: str,
+    quote: str,
+    sequence: int,
+    error: type[Exception],
+):
     facts = Facts(
-        store, stub_extractor("any", "any"), "model", "prompt_id", "prompt_version"
+        store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
     )
-
-    with pytest.raises(EvidenceNotInSourceSpan):
-        facts.confirm(
-            DOCUMENT_ID,
-            FactDraft(claim="c", evidence_quote="nothing", source_sequence=2),
-        )
-    assert store.get_facts(DOCUMENT_ID) == []
-
-
-def test_confirm_rejects_unknown_document(store: SqliteFactStore):
-    facts = Facts(
-        store, stub_extractor("any", "any"), "model", "prompt_id", "prompt_version"
+    original = await facts.extract(DOCUMENT_ID, 2)
+    assert original.extraction_run_id is not None
+    # Deliberately invalid stored candidates exercise confirmation's own checks.
+    fact_id = store.save_fact(
+        document_id, "c", quote, sequence, original.extraction_run_id
     )
-
-    with pytest.raises(SourceSpanNotFound):
-        facts.confirm(
-            "nope", FactDraft(claim="c", evidence_quote="world", source_sequence=2)
-        )
-    assert store.get_facts(DOCUMENT_ID) == []
-
-
-def test_confirm_rejects_unknown_sequence(store: SqliteFactStore):
-    facts = Facts(
-        store, stub_extractor("any", "any"), "model", "prompt_id", "prompt_version"
-    )
-
-    with pytest.raises(SourceSpanNotFound):
-        facts.confirm(
-            DOCUMENT_ID,
-            FactDraft(claim="c", evidence_quote="world", source_sequence=99),
-        )
-    assert store.get_facts(DOCUMENT_ID) == []
+    before = store.get_fact(fact_id)
+    with pytest.raises(error):
+        _ = facts.confirm(fact_id)
+    assert store.get_fact(fact_id) == before
 
 
 async def test_extract_returns_candidate(store: SqliteFactStore):
@@ -119,7 +115,9 @@ async def test_extract_returns_candidate(store: SqliteFactStore):
 
     result = await facts.extract(DOCUMENT_ID, 2)
 
-    assert result == FactDraft(claim="c", evidence_quote="world", source_sequence=2)
+    assert result.claim == "c"
+    assert result.evidence_quote == "world"
+    assert result.source_sequence == 2
 
 
 async def test_extract_rejects_quote_not_in_span(store: SqliteFactStore):
@@ -190,7 +188,9 @@ async def test_extract_modal_fact_completed(store: SqliteFactStore):
 
     result = await facts.extract(DOCUMENT_ID, 2)
 
-    assert result == FactDraft(claim="c", evidence_quote="world", source_sequence=2)
+    assert result.claim == "c"
+    assert result.evidence_quote == "world"
+    assert result.source_sequence == 2
 
     # Check that a successful model fact run was saved
     runs = store.get_model_fact_runs(DOCUMENT_ID)
@@ -220,11 +220,9 @@ async def test_is_using_extract_modal_fact(store: SqliteFactStore):
 
     fact_draft = await facts.extract(document.document_id, 1)
 
-    assert fact_draft == FactDraft(
-        claim="c",
-        evidence_quote="saved text",
-        source_sequence=1,
-    )
+    assert fact_draft.claim == "c"
+    assert fact_draft.evidence_quote == "saved text"
+    assert fact_draft.source_sequence == 1
 
 
 async def test_extract_output_parsed_none():
@@ -246,3 +244,31 @@ async def test_extract_output_parsed_none():
         match="Model did not return a fact draft",
     ):
         _ = await extractor(span)
+
+
+async def test_extract_saves_pending_candidate(store: SqliteFactStore):
+    facts = Facts(
+        store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
+    )
+
+    result = await facts.extract(DOCUMENT_ID, 2)
+    saved = store.get_fact(result.id)
+
+    assert saved is not None
+    assert saved == result
+    assert saved.status == "pending"
+    assert saved.claim == "c"
+    assert saved.original_claim == "c"
+    assert saved.evidence_quote == "world"
+    assert saved.document_id == DOCUMENT_ID
+    assert saved.source_sequence == 2
+    assert saved.created_at is not None
+    assert saved.updated_at is not None
+    assert saved.confirmed_at is None
+    assert saved.extraction_run_id is not None
+
+    run = store.get_model_fact_run(saved.extraction_run_id)
+    assert run is not None
+    assert run.status == "completed"
+    assert run.document_id == DOCUMENT_ID
+    assert run.source_sequence == 2

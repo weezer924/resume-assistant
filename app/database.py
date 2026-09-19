@@ -1,5 +1,5 @@
 import sqlite3
-from typing import cast
+from typing import Literal, cast
 
 from app.schema import Document, FactDraft, ModelFactRun, SourceSpan
 
@@ -25,9 +25,14 @@ class SqliteFactStore:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     document_id TEXT NOT NULL,
                     claim TEXT NOT NULL,
+                    confirmed_at TEXT,
                     evidence_quote TEXT NOT NULL,
                     source_sequence INTEGER NOT NULL,
+                    original_claim TEXT NOT NULL,
+                    status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'rejected')),
+                    extraction_run_id INTEGER,
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (document_id) REFERENCES documents(document_id)
                 )
             """)
@@ -153,42 +158,142 @@ class SqliteFactStore:
     def save_fact(
         self,
         document_id: str,
-        fact_draft: FactDraft,
-    ) -> None:
+        claim: str,
+        evidence_quote: str,
+        source_sequence: int,
+        extraction_run_id: int,
+    ) -> int:
         with sqlite3.connect(self.db_path) as connection:
-            _ = connection.execute(
+            cursor = connection.execute(
                 """
                         INSERT INTO facts (
                             document_id,
                             claim,
                             evidence_quote,
-                            source_sequence
+                            original_claim,
+                            source_sequence,
+                            status,
+                            extraction_run_id,
+                            confirmed_at
                         )
-                        VALUES (?, ?, ?, ?)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                 (
                     document_id,
-                    fact_draft.claim,
-                    fact_draft.evidence_quote,
-                    fact_draft.source_sequence,
+                    claim,
+                    evidence_quote,
+                    claim,
+                    source_sequence,
+                    "pending",
+                    extraction_run_id,
+                    None,
                 ),
+            )
+            if cursor.lastrowid is None:
+                raise ValueError("Failed to insert fact")
+
+            return cursor.lastrowid
+
+    def confirm_fact(self, fact_id: int) -> None:
+        with sqlite3.connect(self.db_path) as connection:
+            _ = connection.execute(
+                """
+                UPDATE facts
+                SET status = 'confirmed', confirmed_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND status = 'pending'
+                """,
+                (fact_id,),
             )
 
     def get_facts(self, document_id: str) -> list[FactDraft]:
         with sqlite3.connect(self.db_path) as connection:
             cursor = connection.execute(
                 """
-                SELECT claim, evidence_quote, source_sequence
+                SELECT id, document_id, claim, evidence_quote,original_claim, source_sequence, status,extraction_run_id,confirmed_at, created_at, updated_at
                 FROM facts
                 WHERE document_id = ?
                 """,
                 (document_id,),
             )
-            rows = cast(list[tuple[str, str, int]], cursor.fetchall())
+            rows = cast(
+                list[
+                    tuple[
+                        int,  # id: int
+                        str,  # document_id: str
+                        str,  # claim: str
+                        str,  # evidence_quote: str
+                        str,  # original_claim: str
+                        int,  # source_sequence: int
+                        Literal["pending", "confirmed", "rejected"],  # status
+                        int | None,  # extraction_run_id: int | None
+                        str | None,  # confirmed_at: str | None
+                        str,  # created_at: str
+                        str,  # updated_at: str
+                    ]
+                ],
+                cursor.fetchall(),
+            )
             return [
-                FactDraft(claim=row[0], evidence_quote=row[1], source_sequence=row[2])
+                FactDraft(
+                    id=row[0],
+                    document_id=row[1],
+                    claim=row[2],
+                    evidence_quote=row[3],
+                    original_claim=row[4],
+                    source_sequence=row[5],
+                    status=row[6],
+                    extraction_run_id=row[7],
+                    confirmed_at=row[8],
+                    created_at=row[9],
+                    updated_at=row[10],
+                )
                 for row in rows
             ]
+
+    def get_fact(self, fact_id: int) -> FactDraft | None:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                SELECT id, document_id, claim, evidence_quote,original_claim, source_sequence, status,extraction_run_id,confirmed_at, created_at, updated_at
+                FROM facts
+                WHERE id = ?
+                """,
+                (fact_id,),
+            )
+            row = cast(
+                tuple[
+                    int,  # id: int
+                    str,  # document_id: str
+                    str,  # claim: str
+                    str,  # evidence_quote: str
+                    str,  # original_claim: str
+                    int,  # source_sequence: int
+                    Literal["pending", "confirmed", "rejected"],  # status
+                    int | None,  # extraction_run_id: int | None
+                    str | None,  # confirmed_at: str | None
+                    str,  # created_at: str
+                    str,  # updated_at: str
+                ]
+                | None,
+                cursor.fetchone(),
+            )
+        if row is None:
+            return None
+
+        return FactDraft(
+            id=row[0],
+            document_id=row[1],
+            claim=row[2],
+            evidence_quote=row[3],
+            original_claim=row[4],
+            source_sequence=row[5],
+            status=row[6],
+            extraction_run_id=row[7],
+            confirmed_at=row[8],
+            created_at=row[9],
+            updated_at=row[10],
+        )
 
     def save_model_fact_run(self, model_fact_run: ModelFactRun) -> int:
         with sqlite3.connect(self.db_path) as connection:

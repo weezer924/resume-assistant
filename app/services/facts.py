@@ -5,6 +5,14 @@ from app.database import SqliteFactStore
 from app.schema import FactDraft, ModelFactOutput, ModelFactRun, SourceSpan
 
 
+class FactNotFound(Exception):
+    pass
+
+
+class InvalidFactTransition(Exception):
+    pass
+
+
 class EvidenceNotInSourceSpan(Exception):
     pass
 
@@ -49,11 +57,25 @@ class Facts:
                 "Evidence quote was not found in the source span"
             )
 
-    def confirm(self, document_id: str, fact_draft: FactDraft) -> None:
-        span = self._locate_span(document_id, fact_draft.source_sequence)
+    def confirm(self, fact_id: int) -> FactDraft:
+        fact = self.store.get_fact(fact_id)
+        if fact is None:
+            raise FactNotFound(fact_id)
+        if fact.status == "rejected":
+            raise InvalidFactTransition(
+                "Rejected facts must be edited before confirmation"
+            )
 
-        self._check_evidence(span, fact_draft.evidence_quote)
-        self.store.save_fact(document_id, fact_draft)
+        span = self._locate_span(fact.document_id, fact.source_sequence)
+        self._check_evidence(span, fact.evidence_quote)
+        if fact.status == "confirmed":
+            return fact
+
+        self.store.confirm_fact(fact_id)
+        confirmed = self.store.get_fact(fact_id)
+        if confirmed is None:
+            raise RuntimeError("Confirmed fact could not be read")
+        return confirmed
 
     async def extract(self, document_id: str, sequence: int) -> FactDraft:
         span = self._locate_span(document_id, sequence)
@@ -86,7 +108,7 @@ class Facts:
 
         else:
             completed_at = time.time()
-            _ = self.store.save_model_fact_run(
+            run_id = self.store.save_model_fact_run(
                 model_fact_run=ModelFactRun(
                     document_id=document_id,
                     source_sequence=sequence,
@@ -101,8 +123,13 @@ class Facts:
                 )
             )
 
-        return FactDraft(
-            claim=output.claim,
-            evidence_quote=output.evidence_quote,
-            source_sequence=span["sequence"],
+        fact_id = self.store.save_fact(
+            document_id, output.claim, output.evidence_quote, span["sequence"], run_id
         )
+
+        fact = self.store.get_fact(fact_id)
+
+        if fact is None:
+            raise RuntimeError("Saved fact could not be read")
+
+        return fact

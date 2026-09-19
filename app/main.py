@@ -2,7 +2,12 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.routes import documents, fact
-from app.services.facts import EvidenceNotInSourceSpan, SourceSpanNotFound
+from app.services.facts import (
+    EvidenceNotInSourceSpan,
+    FactNotFound,
+    InvalidFactTransition,
+    SourceSpanNotFound,
+)
 
 app = FastAPI()
 
@@ -20,3 +25,15 @@ async def evidence_not_in_source_span(_request: Request, _exc: EvidenceNotInSour
     return JSONResponse(
         status_code=422, content={"detail": "Evidence not found in source span"}
     )
+
+
+@app.exception_handler(FactNotFound)
+async def fact_not_found_handler(_request: Request, _exc: FactNotFound):
+    return JSONResponse(status_code=404, content={"detail": "Fact not found"})
+
+
+@app.exception_handler(InvalidFactTransition)
+async def invalid_fact_transition_handler(
+    _request: Request, exc: InvalidFactTransition
+):
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
