@@ -80,6 +80,15 @@ Responsibilities:
 
 ### 14.7 Frontend testing scope
 
+While framework migration is deferred, verify each implemented connected UI
+flow with FastAPI TestClient and browser checks using synthetic data and stub
+model responses. Keep the required controls, evidence displays, and state/error
+visibility in the plain-HTML UI as backend milestones progress.
+
+The framework-specific tools below apply when the retained frontend stack is
+introduced after the core backend workflow and evaluation capabilities are
+complete; they do not require an earlier migration.
+
 Vitest and React Testing Library cover a small set of critical UI invariants:
 
 - unconfirmed Facts cannot enter generation

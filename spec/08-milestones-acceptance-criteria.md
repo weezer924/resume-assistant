@@ -38,27 +38,49 @@ Acceptance:
 
 我把模型生成的声明和原始证据分开保存。来源编号由程序确定，原文片段在导入时固定下来，避免解析规则变化破坏历史溯源。模型输出出现问题时，可以找回当时使用的输入进行排查。
 
-### Week 3 — Fact confirmation and JobRequirement extraction
+### Week 3 — Fact review and JobRequirement extraction
 
 Deliverable:
 
-- Fact status workflow， add status to facts
-- a connected import → extraction → confirm/edit/reject UI
-- pasted job input and structured requirements
-- SQLite migrations, update facts add status
+- persisted pending Fact candidates with stable IDs, original statements, provenance, and extraction Run links
+- multiple candidate Facts extracted from one SourceSpan, each reviewed independently
+- confirm/edit/reject operations on the same Fact record
+- a connected import → extraction → evidence review → confirm/edit/reject UI
+- SQLite migrations preserving existing facts and IDs
+- pasted job input, structured requirements, and extraction Run records
 
 Acceptance:
 
-- Pending and rejected Facts cannot enter generation eligibility.
-- A user edit preserves original extraction and evidence.
-- The UI carries document and candidate identifiers through the workflow, displays source evidence and review status, and reports errors without requiring manual API calls.
-- Job requirements have stable IDs and required/preferred classification.
+- Successful extraction saves pending candidates before confirmation and returns their stable IDs.
+- A fixed behavior test extracts two candidates from one SourceSpan; each has its own ID and valid quote, and confirming one leaves the other pending. Check real-model coverage separately with a fixed multi-job example; job count does not dictate Fact count.
+- Confirmation updates the same record to confirmed and records the confirmation time. Repeated confirmation preserves that time and does not insert a record.
+- Editing updates the current claim, returns the same record to pending, and clears confirmed_at. The original claim, quote, source, and extraction Run link remain unchanged.
+- Rejection updates the same record to rejected, clears confirmed_at, and preserves its content and provenance. Repeated rejection does not insert or delete records; rejected facts require editing back to pending before confirmation.
+- The usable-facts query returns only confirmed records. Actual retrieval and generation consumption are verified in Weeks 4 and 5 respectively.
+- Migration preserves existing data and IDs, initializes original_claim from claim, and marks old facts confirmed. Missing historical extraction Run links and confirmation times stay null rather than being invented.
+- The UI carries identifiers through the workflow, displays each candidate with its source evidence and review state, and reports errors without manual API handoffs.
+- Job input and extracted requirements are persisted with stable IDs. Each requirement preserves a validated source quote and distinguishes required, preferred, or unspecified; years or levels are recorded only when explicit.
+- Job extraction records successful and failed Runs using the actual job source, without fabricating document or SourceSpan identifiers.
 
-- 待确认、已拒绝的 Fact 不能用于后续生成。
-- 用户编辑不会丢失原始抽取和证据。
-- 职位要求有稳定 ID，并标明 required / preferred。
+Current implementation order:
+
+1. Finish the in-progress reject behavior.
+2. Support multiple Facts per SourceSpan and independent review.
+3. Migrate the existing SQLite data.
+4. Implement JobRequirement extraction and inspect fixed real-model examples.
+
+Connect each behavior to the minimal UI as it is implemented. Existing candidate
+persistence, confirmation, and editing work is retained, not restarted. Each
+slice gets a finite behavior checklist before implementation; this weekly list
+is not an instruction to write all tests at once.
 
 ### Week 4 — Retrieval baseline
+
+Before indexing:
+
+- Align Document/SourceSpan hashes and evidence identifiers with the approved Week 3 ADR; do not add duplicate-import handling or reopen Week 2.
+- Define the FactEvidence relationships and support types needed for retrieval and later citations.
+- Select the Fact field subset actually consumed by the index; do not implement every target-model field without a consumer.
 
 Deliverable:
 
@@ -69,7 +91,7 @@ Deliverable:
 Acceptance:
 
 - Index rebuild from SQLite is documented and repeatable.
-- Only confirmed Facts are retrieved by default.
+- Pending and rejected Facts are excluded from the retrieval path.
 - Retrieval candidates, scores, ranks, and selected Evidence IDs are persisted.
 - The same cases compare vector-only, full-text-only, and hybrid results.
 
@@ -86,7 +108,7 @@ Deliverable:
 
 Acceptance:
 
-- Each factual Claim cites valid confirmed evidence.
+- Each factual Claim cites valid confirmed evidence; generation rejects pending or rejected evidence even if an ID is supplied directly.
 - A missing skill produces no fabricated experience.
 - Context inputs and selection decisions are visible in the Run.
 - Learning advice cannot appear in supported resume content.
@@ -112,14 +134,14 @@ Deliverable:
 
 - groundedness, relevance, exaggeration, and Japanese-quality judges
 - versioned prompts
-- complete Run Detail UI
+- a minimal Run Detail interface exposing the required execution information
 - approximately 30 public cases
 
 Acceptance:
 
 - Judge outputs are structured and traceable to Claims and Evidence.
 - At least two prompt or model configurations can be compared on the same cases.
-- Run Detail shows prompt/model versions, tokens, latency, cost, retrieval, and checks.
+- Run Detail shows prompt/model versions, tokens, latency, cost, retrieval, checks, and errors. A simple inspectable interface is sufficient; framework migration and visual polish are not acceptance requirements.
 
 ### Week 8 — Bounded Evidence Agent
 
@@ -168,6 +190,14 @@ Acceptance:
 - A clean checkout follows documented local setup successfully.
 - The owner can present the product, architecture, one success, two failures, and key trade-offs in ten minutes.
 - Claims in public documentation match implemented evidence and do not imply multi-agent, OCR, fine-tuning, or production-scale deployment.
+
+### Frontend migration sequencing
+
+Jack retains the frontend framework migration target, but defers it until the
+core backend workflow and evaluation capabilities are complete. Its concrete
+schedule will be set at a later review. Existing weekly UI deliverables remain:
+use the plain-HTML frontend to provide the necessary controls and inspectable
+results without making framework migration a prerequisite.
 
 ## 20. Explicit non-goals
 

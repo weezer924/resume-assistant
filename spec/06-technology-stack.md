@@ -19,6 +19,16 @@ The initial backend may use synchronous SQLAlchemy sessions. Async database acce
 
 ### 17.2 Frontend
 
+Sequencing decision approved by Jack (2026-09-20): retain the frontend framework
+migration target below, but defer it until the core backend workflow and
+evaluation capabilities are complete. Schedule its concrete slice at a later
+review rather than assigning it to an active week now.
+
+Until then, use plain HTML, CSS, and JavaScript in `frontend/`, served by FastAPI
+on the same origin. Add the UI controls and result displays needed for each
+backend milestone, and fix usability bugs; framework migration is not a
+prerequisite for those milestones. No Node build step is required in this phase.
+
 - Node.js 24 LTS baseline
 - pnpm with committed lockfile
 - current stable Next.js release at initialization time
