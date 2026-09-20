@@ -113,6 +113,21 @@ class SqliteFactStore:
                 "sequence": row[3],
             }
 
+    def get_source_spans(self, document_id: str) -> list[SourceSpan]:
+        with sqlite3.connect(self.db_path) as connection:
+            rows = cast(
+                list[tuple[str, int, str, int]],
+                connection.execute(
+                    """SELECT section, level, body, sequence FROM source_spans
+                    WHERE document_id = ? ORDER BY sequence""",
+                    (document_id,),
+                ).fetchall(),
+            )
+            return [
+                SourceSpan(section=row[0], level=row[1], body=row[2], sequence=row[3])
+                for row in rows
+            ]
+
     def save_source_span(self, document_id: str, source_span: SourceSpan) -> None:
         with sqlite3.connect(self.db_path) as connection:
             _ = connection.execute(

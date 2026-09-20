@@ -16,3 +16,7 @@ Read the specification in this order:
 Decision records live in [spec/adr/](./spec/adr/). For Week 3, also read the approved [field and lifecycle alignment](./spec/adr/week3-model-alignment.md).
 
 The overall specification remains **Draft for review**. Implementation beyond explicitly requested exercises waits until the approval checklist in [Section 24](./spec/08-milestones-acceptance-criteria.md#24-specification-approval-checklist) is reviewed and the overall status becomes **Approved**. Approval of a scoped alignment does not imply approval of the entire specification.
+
+## Local review UI
+
+For the Week 3 HTML MVP, see [startup and workflow instructions](frontend/README.md).

@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.routes import documents, fact
 from app.services.facts import (
@@ -10,6 +13,15 @@ from app.services.facts import (
 )
 
 app = FastAPI()
+
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def review_page():
+    return FileResponse(FRONTEND_DIR / "index.html")
+
 
 app.include_router(documents.router)
 app.include_router(fact.router)

@@ -34,6 +34,10 @@ class ConfirmFactRequest(BaseModel):
     fact_id: int
 
 
+class EditFactRequest(BaseModel):
+    claim: str
+
+
 class Document(BaseModel):
     document_id: str
     filename: str

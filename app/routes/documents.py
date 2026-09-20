@@ -54,3 +54,21 @@ async def post_document_drafts(
 ):
     fact_draft = await facts.extract(document_id, sequence)
     return {"fact_draft": fact_draft.model_dump()}
+
+
+@router.get("/documents/{document_id}/review")
+def get_document_review(
+    document_id: str,
+    store: Annotated[SqliteFactStore, Depends(get_store)],
+):
+    document = store.get_document(document_id)
+
+    if document is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    return {
+        "document_id": document_id,
+        "filename": document.filename,
+        "spans": store.get_source_spans(document_id),
+        "facts": store.get_facts(document_id),
+    }

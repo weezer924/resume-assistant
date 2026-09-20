@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from app.dependencies import get_facts
-from app.schema import ConfirmFactRequest
+from app.schema import ConfirmFactRequest, EditFactRequest
 from app.services.facts import Facts
 
 router = APIRouter()
@@ -22,3 +22,12 @@ async def post_fact_draft(
         "document_id": confirmed.document_id,
         "fact": confirmed.model_dump(),
     }
+
+
+@router.patch("/facts/{fact_id}")
+def edit_fact(
+    fact_id: int,
+    request: EditFactRequest,
+    facts: Annotated[Facts, Depends(get_facts)],
+):
+    return {"fact": facts.edit(fact_id, request.claim).model_dump()}
