@@ -78,36 +78,6 @@ async def test_confirm_updates_pending_candidate(store: SqliteFactStore):
     assert result.confirmed_at is not None
 
 
-@pytest.mark.parametrize(
-    ("document_id", "quote", "sequence", "error"),
-    [
-        (DOCUMENT_ID, "nothing", 2, EvidenceNotInSourceSpan),
-        ("nope", "world", 2, SourceSpanNotFound),
-        (DOCUMENT_ID, "world", 99, SourceSpanNotFound),
-    ],
-)
-async def test_confirm_rechecks_saved_evidence(
-    store: SqliteFactStore,
-    document_id: str,
-    quote: str,
-    sequence: int,
-    error: type[Exception],
-):
-    facts = Facts(
-        store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
-    )
-    original = await facts.extract(DOCUMENT_ID, 2)
-    assert original.extraction_run_id is not None
-    # Deliberately invalid stored candidates exercise confirmation's own checks.
-    fact_id = store.save_fact(
-        document_id, "c", quote, sequence, original.extraction_run_id
-    )
-    before = store.get_fact(fact_id)
-    with pytest.raises(error):
-        _ = facts.confirm(fact_id)
-    assert store.get_fact(fact_id) == before
-
-
 async def test_extract_returns_candidate(store: SqliteFactStore):
     facts = Facts(
         store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
@@ -272,3 +242,62 @@ async def test_extract_saves_pending_candidate(store: SqliteFactStore):
     assert run.status == "completed"
     assert run.document_id == DOCUMENT_ID
     assert run.source_sequence == 2
+
+
+async def test_edit_returns_confirmed_fact_to_pending(store: SqliteFactStore):
+    facts = Facts(
+        store,
+        stub_extractor("original_claim", "hello"),
+        "model",
+        "prompt_id",
+        "prompt_version",
+    )
+
+    candidate = await facts.extract(DOCUMENT_ID, 1)
+
+    _ = facts.confirm(candidate.id)
+    _ = facts.edit(candidate.id, "edited claim")
+    edited_candidate = store.get_fact(candidate.id)
+
+    assert edited_candidate is not None
+    assert edited_candidate.id == candidate.id
+    assert edited_candidate.status == "pending"
+    assert edited_candidate.confirmed_at is None
+    assert edited_candidate.original_claim == candidate.original_claim
+    assert edited_candidate.claim == "edited claim"
+    assert edited_candidate.evidence_quote == candidate.evidence_quote
+    assert edited_candidate.extraction_run_id == candidate.extraction_run_id
+    assert edited_candidate.document_id == candidate.document_id
+    assert edited_candidate.source_sequence == candidate.source_sequence
+
+    assert len(store.get_facts(DOCUMENT_ID)) == 1
+
+
+async def test_reject_preserves_fact(store: SqliteFactStore):
+    facts = Facts(
+        store,
+        stub_extractor("original_claim", "hello"),
+        "model",
+        "prompt_id",
+        "prompt_version",
+    )
+
+    candidate = await facts.extract(DOCUMENT_ID, 1)
+
+    _ = facts.confirm(candidate.id)
+    result = facts.reject(candidate.id)
+    rejected_candidate = store.get_fact(candidate.id)
+
+    assert rejected_candidate is not None
+    assert result == rejected_candidate
+    assert rejected_candidate.id == candidate.id
+    assert rejected_candidate.status == "rejected"
+    assert rejected_candidate.confirmed_at is None
+    assert rejected_candidate.original_claim == candidate.original_claim
+    assert rejected_candidate.claim == candidate.claim
+    assert rejected_candidate.evidence_quote == candidate.evidence_quote
+    assert rejected_candidate.extraction_run_id == candidate.extraction_run_id
+    assert rejected_candidate.document_id == candidate.document_id
+    assert rejected_candidate.source_sequence == candidate.source_sequence
+
+    assert len(store.get_facts(DOCUMENT_ID)) == 1

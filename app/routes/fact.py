@@ -31,3 +31,11 @@ def edit_fact(
     facts: Annotated[Facts, Depends(get_facts)],
 ):
     return {"fact": facts.edit(fact_id, request.claim).model_dump()}
+
+
+@router.post("/facts/{fact_id}/reject")
+def reject_fact(
+    fact_id: int,
+    facts: Annotated[Facts, Depends(get_facts)],
+):
+    return {"fact": facts.reject(fact_id).model_dump()}

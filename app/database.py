@@ -209,17 +209,67 @@ class SqliteFactStore:
 
             return cursor.lastrowid
 
-    def confirm_fact(self, fact_id: int) -> None:
+    def confirm_fact(self, fact_id: int) -> FactDraft | None:
         with sqlite3.connect(self.db_path) as connection:
-            _ = connection.execute(
+            connection.row_factory = sqlite3.Row
+            cursor = connection.execute(
                 """
                 UPDATE facts
                 SET status = 'confirmed', confirmed_at = CURRENT_TIMESTAMP,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ? AND status = 'pending'
+                RETURNING *
                 """,
                 (fact_id,),
             )
+            row = cast(sqlite3.Row | None, cursor.fetchone())
+
+            if row is None:
+                return None
+            return FactDraft.model_validate(dict(row))
+
+    def edit_fact(self, fact_id: int, claim: str) -> FactDraft | None:
+        with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            cursor = connection.execute(
+                """
+                UPDATE facts
+                SET claim = ?, status = 'pending', confirmed_at = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                RETURNING *
+                """,
+                (
+                    claim,
+                    fact_id,
+                ),
+            )
+            row = cast(sqlite3.Row | None, cursor.fetchone())
+
+            if row is None:
+                return None
+
+            return FactDraft.model_validate(dict(row))
+
+    def reject_fact(self, fact_id: int) -> FactDraft | None:
+        with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            cursor = connection.execute(
+                """
+                UPDATE facts
+                SET status = 'rejected', confirmed_at = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND status IN ('pending', 'confirmed')
+                RETURNING *
+                """,
+                (fact_id,),
+            )
+            row = cast(sqlite3.Row | None, cursor.fetchone())
+
+            if row is None:
+                return None
+
+            return FactDraft.model_validate(dict(row))
 
     def get_facts(self, document_id: str) -> list[FactDraft]:
         with sqlite3.connect(self.db_path) as connection:

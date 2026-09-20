@@ -35,7 +35,7 @@ def make_source_span(content: str) -> list[SourceSpan]:
     header: SectionHeader | None = None
 
     for line in content.splitlines():
-        if line.startswith("#"):
+        if line.startswith(("# ", "## ")):
             level = len(line) - len(line.lstrip("#"))
             title = line[level:].strip()
 

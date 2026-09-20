@@ -39,7 +39,7 @@ def test_import_document_with_file(client: TestClient, tmp_path: Path):
     spans: list[SourceSpan] = cast(list[SourceSpan], response.json()["spans"])
     first = spans[0]
     assert first["section"] == "職務経歴書"
-    assert len(spans) == 9
+    assert len(spans) == 7
 
     document_id = cast(str, response.json()["document_id"])
     store = SqliteFactStore(str(tmp_path / "test.db"))

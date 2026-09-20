@@ -205,10 +205,6 @@ The 8–10 week release does not include:
 
 - public hosted service
 - user registration, OAuth, or multi-user authorization
-- Gmail, Google Drive, or LinkedIn account integrations
-- automatic website crawling
-- scanned-document OCR
-- image/VLM document understanding
 - digital PDF support unless added after core completion
 - autonomous Agent control of the core pipeline
 - multi-agent systems
@@ -221,7 +217,6 @@ The 8–10 week release does not include:
 - full DOCX/PDF resume layout generation
 - mobile-specific layout work
 - public real-time API use
-- conventional data-science model development or feature-engineering claims
 
 ## 21. Demo narrative
 

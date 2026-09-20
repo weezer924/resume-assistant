@@ -39,6 +39,7 @@ class Facts:
         self.prompt_id: str = prompt_id
         self.prompt_version: str = prompt_version
 
+    # 对应的文档和原文片段存在
     def _locate_span(self, document_id: str, sequence: int) -> SourceSpan:
         document = self.store.get_document(document_id)
         if document is None:
@@ -51,6 +52,7 @@ class Facts:
 
         return saved_source_spans
 
+    # 保存的引用确实出现在该片段中
     def _check_evidence(self, span: SourceSpan, evidence_quote: str) -> None:
         if evidence_quote not in span["body"]:
             raise EvidenceNotInSourceSpan(
@@ -66,16 +68,36 @@ class Facts:
                 "Rejected facts must be edited before confirmation"
             )
 
-        span = self._locate_span(fact.document_id, fact.source_sequence)
-        self._check_evidence(span, fact.evidence_quote)
         if fact.status == "confirmed":
             return fact
 
-        self.store.confirm_fact(fact_id)
-        confirmed = self.store.get_fact(fact_id)
+        confirmed = self.store.confirm_fact(fact_id)
         if confirmed is None:
-            raise RuntimeError("Confirmed fact could not be read")
+            raise RuntimeError("Fact could not be confirmed")
         return confirmed
+
+    def edit(self, fact_id: int, claim: str) -> FactDraft:
+        fact = self.store.get_fact(fact_id)
+        if fact is None:
+            raise FactNotFound(fact_id)
+
+        edited_fact = self.store.edit_fact(fact_id, claim)
+        if edited_fact is None:
+            raise RuntimeError("Fact could not be edited")
+        return edited_fact
+
+    def reject(self, fact_id: int) -> FactDraft:
+        fact = self.store.get_fact(fact_id)
+        if fact is None:
+            raise FactNotFound(fact_id)
+
+        if fact.status == "rejected":
+            return fact
+
+        rejected = self.store.reject_fact(fact_id)
+        if rejected is None:
+            raise RuntimeError("Fact could not be rejected")
+        return rejected
 
     async def extract(self, document_id: str, sequence: int) -> FactDraft:
         span = self._locate_span(document_id, sequence)

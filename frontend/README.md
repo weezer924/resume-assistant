@@ -39,7 +39,7 @@ rejection, and job analysis are deferred. No raw source text is inserted as HTML
 
 ## Validation
 
-`tests/test_review_ui.py` covers the connected HTTP flow using a temporary SQLite
+`tests/test_review_api.py` covers the connected HTTP flow using a temporary SQLite
 database and stub extractor. Browser smoke verification also covers import,
 extraction, confirmation, edit, reload, and a narrow-screen layout. These checks
 do not evaluate the real model's output quality.
