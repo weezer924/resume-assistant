@@ -41,10 +41,11 @@ function renderFacts() {
     const badge = $('.badge', card);
     badge.textContent = ({ pending: 'Pending', confirmed: 'Confirmed', rejected: 'Rejected' })[fact.status] || fact.status;
     badge.classList.toggle('confirmed', fact.status === 'confirmed');
+    badge.classList.toggle('rejected', fact.status === 'rejected');
     $('.claim', card).textContent = fact.claim;
     $('.quote', card).textContent = fact.evidence_quote;
     $('.original p', card).textContent = fact.original_claim;
-    $('.eligibility', card).textContent = fact.status === 'confirmed' ? 'Confirmed. Eligible as evidence for generation.' : 'Confirmation required before use in generation.';
+    $('.eligibility', card).textContent = fact.status === 'confirmed' ? 'Confirmed. Eligible as evidence for generation.' : fact.status === 'rejected' ? 'Rejected. Edit before confirming again.' : 'Confirmation required before use in generation.';
     const fields = [['Source section', String(fact.source_sequence)], ['Extraction run', fact.extraction_run_id ?? 'Not recorded'], ['Confirmed at', fact.confirmed_at ? `${fact.confirmed_at} UTC` : 'Not confirmed'], ['Updated at', `${fact.updated_at} UTC`]];
     for (const [key, value] of fields) {
       const dt = document.createElement('dt'); dt.textContent = key;
@@ -56,6 +57,13 @@ function renderFacts() {
     confirm.textContent = fact.status === 'confirmed' ? 'Confirmed' : 'Confirm';
     confirm.onclick = () => action(async () => {
       const response = await api('/fact/', json('POST', { fact_id: fact.id }));
+      updateFact(response.fact);
+    });
+    const reject = $('.reject', card);
+    reject.disabled = fact.status === 'rejected';
+    reject.textContent = fact.status === 'rejected' ? 'Rejected' : 'Reject';
+    reject.onclick = () => action(async () => {
+      const response = await api(`/facts/${fact.id}/reject`, {method: 'POST'});
       updateFact(response.fact);
     });
     const form = $('.edit-form', card);

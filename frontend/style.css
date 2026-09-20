@@ -400,3 +400,4 @@ footer {
     color: var(--muted);
     overflow-wrap: anywhere
 }
+.badge.rejected{background:#f6e5e4;color:#8c3530}.actions{flex-wrap:wrap}
