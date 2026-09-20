@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resume Assistant · Fact review</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+
+<body>
+  <main>
+    <form id="import-form" class="import-bar">
+      <label for="file">Markdown</label><input id="file" type="file" accept=".md,.markdown,text/markdown,text/plain">
+      <button type="submit">Import document</button>
+      <span id="selected-file">or drop a file here</span>
+      <span class="hint">Extraction sends the selected section to OpenAI.</span>
+    </form>
+    <div id="error" role="alert" hidden></div>
+    <section id="workspace" hidden>
+      <div class="document-heading">
+        <h2 id="filename"></h2>
+        <details>
+          <summary>Document ID</summary><span id="document-id"></span>
+        </details>
+      </div>
+      <div class="columns">
+        <section class="source-pane" aria-labelledby="source-title">
+          <h2 id="source-title">Source section</h2>
+          <label for="span-select">Select a section</label><select id="span-select"></select>
+          <pre id="source-body"></pre>
+          <button id="extract" type="button">Extract facts</button>
+        </section>
+        <section class="review-pane" aria-labelledby="review-title">
+          <div class="review-heading">
+            <h2 id="review-title">Candidate facts</h2><span id="count"></span>
+          </div>
+          <p id="empty">No candidates yet. Extract facts from the selected section.</p>
+          <div id="facts"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+  <template id="fact-template">
+    <article class="fact">
+      <div class="fact-heading"><strong class="fact-id"></strong><span class="badge"></span></div>
+      <p class="claim"></p>
+      <h3>Source quote</h3>
+      <blockquote class="quote"></blockquote>
+      <details class="original">
+        <summary>Original model statement</summary>
+        <p></p>
+      </details>
+      <p class="eligibility"></p>
+      <dl class="metadata"></dl>
+      <div class="actions"><button class="confirm" type="button">Confirm</button><button class="edit secondary"
+          type="button">Edit</button></div>
+      <form class="edit-form" hidden><label>Edit statement<textarea required rows="4"></textarea></label>
+        <p class="hint">Edits require confirmation. The source quote stays unchanged.</p><button type="submit">Save as
+          pending</button><button type="button" class="cancel secondary">Cancel</button>
+      </form>
+    </article>
+  </template>
+</body>
+
+</html>
