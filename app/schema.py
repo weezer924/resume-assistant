@@ -77,3 +77,12 @@ class ModelFactRun(BaseModel):
     status: str
     output: str | None
     error: str | None
+
+
+class Job(BaseModel):
+    id: str
+    source_text: str
+
+
+class CreateJobRequest(BaseModel):
+    source_text: str

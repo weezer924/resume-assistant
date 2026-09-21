@@ -5,7 +5,7 @@ from typing import cast
 import pytest
 
 from app.database import SqliteFactStore
-from app.schema import Document, SourceSpan
+from app.schema import Document, Job, SourceSpan
 
 DOCUMENT_ID_1 = "doc1"
 DOCUMENT_ID_2 = "doc2"
@@ -111,3 +111,12 @@ def test_save_document_with_spans(store: SqliteFactStore):
 
     assert store.get_document(document.document_id) is None
     assert store.get_source_span(document.document_id, 1) is None
+
+
+def test_save_job(store: SqliteFactStore):
+    job = Job(id="job-1", source_text="We need a python engineer")
+
+    store.save_job(job)
+    saved_job = store.get_job(job.id)
+
+    assert saved_job == job

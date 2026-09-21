@@ -1,7 +1,14 @@
 import sqlite3
 from typing import Literal, cast
 
-from app.schema import Document, FactDraft, ModelFactOutput, ModelFactRun, SourceSpan
+from app.schema import (
+    Document,
+    FactDraft,
+    Job,
+    ModelFactOutput,
+    ModelFactRun,
+    SourceSpan,
+)
 
 
 class SqliteFactStore:
@@ -65,6 +72,13 @@ class SqliteFactStore:
                     sequence INTEGER NOT NULL,
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (document_id) REFERENCES documents(document_id)
+                )
+            """)
+
+            _ = connection.execute("""
+                CREATE TABLE IF NOT EXISTS jobs (
+                    id TEXT PRIMARY KEY,
+                    source_text TEXT NOT NULL
                 )
             """)
 
@@ -497,3 +511,34 @@ class SqliteFactStore:
                 )
                 for row in rows
             ]
+
+    def save_job(self, job: Job) -> None:
+        with sqlite3.connect(self.db_path) as connection:
+            _ = connection.execute(
+                """
+                    INSERT INTO jobs (
+                        id,
+                        source_text
+                    )
+                    VALUES (?,?)
+                """,
+                (job.id, job.source_text),
+            )
+
+    def get_job(self, job_id: str) -> Job | None:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                SELECT id, source_text
+                FROM jobs
+                WHERE id = ?
+                """,
+                (job_id,),
+            )
+
+            row = cast(tuple[str, str] | None, cursor.fetchone())
+
+            if row is None:
+                return None
+
+            return Job(id=row[0], source_text=row[1])

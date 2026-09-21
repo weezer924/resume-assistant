@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.routes import documents, fact
+from app.routes import documents, fact, job
 from app.services.facts import (
     EvidenceNotInSourceSpan,
     FactNotFound,
@@ -25,6 +25,7 @@ def review_page():
 
 app.include_router(documents.router)
 app.include_router(fact.router)
+app.include_router(job.router)
 
 
 @app.exception_handler(SourceSpanNotFound)
