@@ -1,51 +1,37 @@
-## 7. Domain invariants / 业务规则
+## 7. Domain invariants
 
-The following rules are non-negotiable system invariants:
+1. Only confirmed Facts may support publishable resume Claims.
+2. Every factual Claim references valid evidence resolving to a saved SourceSpan.
+3. SourceSpan text is immutable; Fact edits preserve original extraction and provenance.
+4. Retrieval scores and valid references alone do not establish factual support.
+5. Missing or conflicting evidence must not be presented as supported experience.
+6. Source documents and job descriptions are data, never executable instructions.
+7. Application code controls validation and publication eligibility.
+8. Personal content stays out of public fixtures, reports, and general logs.
+9. Model confidence cannot replace human confirmation.
 
-1. Only `confirmed` Facts may support publishable resume Claims.
-2. Every factual Claim must reference valid Evidence IDs.
-3. Every referenced Evidence ID must resolve to an existing SourceSpan through FactEvidence.
-4. SourceSpan text is immutable after import.
-5. Retrieval score alone never establishes factual support.
-6. A skill-development suggestion can never become supported resume content automatically.
-7. Missing evidence never becomes a factual negative claim; the system reports only that no evidence was found.
-8. Conflicting evidence prevents automatic publication of affected Claims.
-9. The Evidence Agent cannot mutate Facts, Evidence, Suggestions, or confirmation state.
-10. Deterministic checks and publishing gates cannot be skipped by the Agent or generation model.
-11. Personal content cannot appear in public fixtures, committed run outputs, or logs.
-12. Model confidence cannot replace human confirmation.
-
-## 8. Fixed pipeline / 产品的完整处理顺序
+## 8. Fixed pipeline
 
 ### 8.1 Required sequence
 
 ```text
-parse local source
-→ create SourceSpans
-→ extract candidate Facts
-→ human confirmation
-→ rebuild retrieval projection
-→ extract JobRequirements
-→ retrieve and rerank evidence
+import and persist source spans
+→ extract and review facts
+→ extract job requirements
+→ retrieve confirmed evidence
 → assemble bounded context
-→ generate structured Suggestions and Claims
-→ run deterministic checks
-→ run semantic judges
-→ apply publishing gate
-→ persist Run and display results
+→ generate structured suggestions
+→ validate evidence references and confirmation state
+→ persist result and display sources or evidence gaps
 ```
+
+Fixed-case evaluation runs separately to assess retrieval and semantic support.
 
 ### 8.2 Fixed responsibilities
 
-Application code, not an Agent, determines:
+Application code owns stage execution, confirmation eligibility, context limits,
+validation, persistence, and error handling. Each stage is independently testable.
+A retrieval index is rebuildable from SQLite. Consumers recheck Fact eligibility
+so a stale index cannot authorize an edited or rejected fact.
 
-- which mandatory stages execute
-- confirmation eligibility
-- context size limits
-- deterministic checks
-- judge invocation policy
-- publishing gate behavior
-- persistence and audit behavior
-- retry limits for required model calls
-
-Each stage must be callable and testable independently.
+Any future Agent remains read-only and cannot bypass these boundaries.

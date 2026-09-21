@@ -1,6 +1,6 @@
 # Evidence-Backed Resume Assistant — Product and Technical Specification
 
-Status: **Draft for review**
+Status: **First-release scope approved; implementation in progress**
 
 Read the specification in this order:
 
@@ -15,7 +15,9 @@ Read the specification in this order:
 
 Decision records live in [spec/adr/](./spec/adr/). For Week 3, also read the approved [field and lifecycle alignment](./spec/adr/week3-model-alignment.md).
 
-The overall specification remains **Draft for review**. Implementation beyond explicitly requested exercises waits until the approval checklist in [Section 24](./spec/08-milestones-acceptance-criteria.md#24-specification-approval-checklist) is reviewed and the overall status becomes **Approved**. Approval of a scoped alignment does not imply approval of the entire specification.
+The first release targets one evidence-backed RAG workflow with a small fixed-case
+evaluation and local demo. See [release scope and approval](./spec/08-milestones-acceptance-criteria.md#24-specification-approval)
+for the boundary; Agent work, framework migration, and advanced retrieval are deferred.
 
 ## Local review UI
 

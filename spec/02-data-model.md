@@ -1,200 +1,177 @@
 ## 6. Domain model
 
+The model separates source text, reviewed career facts, job requirements, and
+generated claims. This preserves the evidence behind a statement as it moves
+from extraction to human review and resume generation.
+
+Implementation scope and delivery order are tracked in
+[milestones](08-milestones-acceptance-criteria.md); design decisions are recorded
+in the [model alignment ADR](adr/week3-model-alignment.md).
+
 ### 6.1 Model relationships
 
+The source and review model uses these relationships:
+
 ```text
-Document
-  └── SourceSpan
-        └── FactEvidence
-              └── Fact
+Document ──< SourceSpan ──< Fact
+                              │
+                              └── extraction_run_id → Run
+```
 
-Job
-  └── JobRequirement
+A document contains ordered source spans. One extraction can produce several
+facts from a span. Each fact has its own stable ID and review state.
 
-JobRequirement
-  └── RetrievalCandidate
-        └── Fact / SourceSpan
+The conceptual retrieval and generation model extends this flow (association
+tables are optional until multiple sources require them):
 
-Suggestion
-  └── Claim
-        └── ClaimEvidence
-              └── FactEvidence
-
-Run
-  └── RunStep / RunEvent
+```text
+Job ──< JobRequirement ──< RetrievalCandidate >── Fact
+Fact ──< FactEvidence >── SourceSpan
+Suggestion ──< Claim ──< ClaimEvidence >── FactEvidence
 ```
 
 ### 6.2 Document
 
-Represents one imported local source.
+An imported career document, preserving the original text.
 
-Required fields:
-
-| Field | Description |
+| Field | Meaning |
 | --- | --- |
-| `id` | Stable internal identifier |
-| `document_type` | Resume, LinkedIn export, project note, or other supported source |
-| `original_filename` | Local display name; excluded from public artifacts when sensitive |
-| `content_hash` | Detects duplicate or changed imports |
-| `parser_name` | Parser used for extraction |
-| `parser_version` | Version used for reproducibility |
-| `imported_at` | Import timestamp |
-| `local_path_ref` | Optional local-only reference; never exported publicly |
-| `status` | Imported, parsed, failed, or deleted |
+| `document_id` | Application-generated UUID |
+| `filename` | Imported filename |
+| `content` | Original document text |
+
+The database also records `created_at`. A document and its source spans are
+saved in one transaction.
 
 ### 6.3 SourceSpan
 
-An immutable piece of source text with a stable location.
+An immutable section of a document used as extraction input and source evidence.
 
-Required fields:
-
-| Field | Description |
+| Field | Meaning |
 | --- | --- |
-| `id` | Evidence-facing stable identifier |
-| `document_id` | Parent document |
-| `body` | Exact extracted source text |
-| `section` | Heading or logical section when known |
-| `location_type` | Paragraph, table cell, line range, or other supported locator |
-| `location_data` | Structured coordinates within the source |
-| `sequence` | Stable order in the parsed document |
-| `body_hash` | Detects source changes |
+| `section` | Heading text without Markdown markers |
+| `level` | Heading level; 0 for text before the first heading |
+| `body` | Original section text |
+| `sequence` | One-based position within the document |
 
-SourceSpan text is never edited. Corrections create or update Facts, not source excerpts.
+The database associates each span with its `document_id` and records an internal
+`id` and `created_at`. Application lookups use `(document_id, sequence)`.
+
+The Markdown parser splits on level-one and level-two headings. Deeper headings
+remain in the section body. Extraction reads saved spans, so parser changes do
+not alter existing evidence.
 
 ### 6.4 Fact
 
-A normalized, human-reviewable career fact.
+A career statement extracted from a source span and reviewed by the user.
+The Python record model is named `FactDraft` for all three review states.
 
-Common fields:
-
-| Field | Description |
+| Field | Meaning |
 | --- | --- |
-| `id` | Stable Fact ID |
-| `fact_type` | Typed category |
-| `summary` | Normalized factual statement |
-| `organization` | Related organization when supported |
-| `project` | Related project when supported |
-| `start_date` | Optional supported start date |
-| `end_date` | Optional supported end date |
-| `skills` | Supported technologies or competencies |
-| `attributes` | Fact-type-specific validated fields |
-| `status` | Pending, confirmed, rejected, or conflicting |
-| `created_at` | Creation timestamp |
-| `updated_at` | Last modification timestamp |
-| `confirmed_at` | Human confirmation timestamp |
+| `id` | Stable integer ID |
+| `document_id` | Source document |
+| `source_sequence` | Source span within that document |
+| `claim` | Current editable statement |
+| `original_claim` | Original extracted statement |
+| `evidence_quote` | Verbatim quote from the source span |
+| `status` | `pending`, `confirmed`, or `rejected` |
+| `extraction_run_id` | Extraction Run ID; nullable when historical linkage is unavailable |
+| `created_at` | Creation time |
+| `updated_at` | Most recent update time |
+| `confirmed_at` | Confirmation time; null when unconfirmed or historically unknown |
 
-Initial Fact types:
+The model returns `ModelFactsOutput`, containing a list of `ModelFactOutput`
+objects with only `claim` and `evidence_quote`. Application code validates each
+quote against the selected span and assigns identity, provenance, and state.
+Quote validation establishes that the excerpt exists; human review checks
+whether it supports the statement.
 
-- `employment`
-- `project`
-- `responsibility`
-- `achievement`
-- `technology_experience`
-- `language`
-- `education`
-- `certification`
+| Action | Result |
+| --- | --- |
+| Extract | Create pending facts with independent IDs |
+| Confirm pending fact | Mark confirmed and record confirmation time |
+| Edit claim | Return to pending and clear confirmation time |
+| Reject | Mark rejected and clear confirmation time |
+| Repeat confirm or reject | Return the existing record unchanged |
 
-Each type shares the common fields and validates its own `attributes` structure.
+Editing preserves the ID, original claim, quote, source, and extraction Run.
+A rejected fact must be edited back to pending before confirmation. Only
+confirmed facts are eligible to support retrieval and generation.
 
 ### 6.5 FactEvidence
 
-Many-to-many relationship between Facts and SourceSpans.
+Fact evidence is represented by the Fact's `document_id`, `source_sequence`,
+`evidence_quote`, and `extraction_run_id`.
 
-Required fields:
-
-- `fact_id`
-- `source_span_id`
-- `support_type`: direct, partial, conflicting, or contextual
-- `extraction_run_id`
-- `created_at`
+The planned `FactEvidence` association supports multiple source spans per fact
+and distinguishes direct, partial, conflicting, and contextual support. The first
+release can use stable references to the existing single-source
+association without introducing this table.
 
 ### 6.6 Job and JobRequirement
 
-Job fields include a stable ID, source text, source hash, language, import time, and extraction version.
+A Job preserves the pasted job description.
 
-JobRequirement fields include:
+| Field | Meaning |
+| --- | --- |
+| `id` | Stable application-generated ID |
+| `source_text` | Original job description |
 
-- `id`
-- `job_id`
-- `category`
-- `requirement_text`
-- `normalized_requirement`
-- `required_or_preferred`
-- `years_or_level`, when explicitly stated
+JobRequirement is the planned structured representation of an individual
+requirement extracted from a Job.
 
-`JobRequirement.priority` and `JobRequirement.status` are deferred until a concrete consumer requires them. This does not defer the Fact review status workflow.
+| Field | Meaning |
+| --- | --- |
+| `id` | Stable requirement ID |
+| `job_id` | Parent Job |
+| `requirement_text` | Supporting quote from the job description |
+| `normalized_requirement` | Normalized requirement statement |
+| `category` | Requirement category |
+| `required_or_preferred` | `required`, `preferred`, or `unspecified` |
+| `years_or_level` | Explicitly stated experience or proficiency; otherwise absent |
+
+Application code validates the supporting quote against the saved job text.
+Extraction configuration belongs to the Run that produced the requirements.
 
 ### 6.7 RetrievalCandidate
 
-Captures retrieval evidence before generation.
+A planned record linking a job requirement to a retrieved fact and its evidence.
+It captures ranking scores, retrieval method, and whether the candidate was
+selected for generation context.
 
-Required fields:
-
-- `run_id`
-- `requirement_id`
-- `fact_id`
-- `source_span_id`
-- vector distance or similarity
-- full-text score
-- fused score
-- reranker score, when used
-- retrieval rank
-- retrieval method and version
-- selected-for-context flag
-
-Scores are diagnostic signals, not natural-language explanations and not proof by themselves.
+Retrieval scores measure relevance; they do not establish factual support.
 
 ### 6.8 Suggestion and Claim
 
-A Suggestion represents one proposed change to resume content. A Suggestion may contain one or more atomic Claims.
+A planned Suggestion represents a proposed resume edit and its related job
+requirements. User accept/edit/reject decisions and edit history are later
+extensions.
 
-Suggestion fields include:
-
-- original content
-- proposed content
-- related Requirement IDs
-- final status
-- user action
-- user-edited content
-- optional edit reason
-
-Claim fields include:
-
-- `id`
-- `suggestion_id`
-- atomic claim text
-- claim type
-- cited Evidence IDs
-- deterministic result
-- groundedness result
-- exaggeration result
-- publishability status
-
-Every factual Claim requires at least one valid Evidence ID. Stylistic glue may be uncited only when it introduces no new factual content.
+A Claim is an atomic factual statement within a Suggestion. Each factual Claim
+must cite valid evidence and pass validation before publication. Wording that
+introduces no factual content does not require a citation.
 
 ### 6.9 Run, RunStep, and RunEvent
 
-A Run is the reproducibility boundary for one pipeline or evaluation execution.
+A Run records one execution and the configuration, result, or error needed to
+inspect it. Fact extraction uses `ModelFactRun`:
 
-Run metadata includes:
+| Fields | Meaning |
+| --- | --- |
+| `document_id`, `source_sequence` | Input source span |
+| `model`, `prompt_id`, `prompt_version` | Actual extraction configuration |
+| `start_at`, `completed_at` | Execution timestamps |
+| `status` | `completed` or `failed` |
+| `output` | Serialized structured model output |
+| `error` | Failure details |
 
-- run type
-- source document hashes
-- job hash
-- Git commit SHA, when available
-- prompt IDs, versions, and hashes
-- model roles and model identifiers
-- schema versions
-- retrieval configuration
-- started/completed timestamps
-- final status
-- token usage
-- latency
-- estimated cost
-- error summary
+The database assigns the Run's `id` and `created_at`. Extracted facts reference
+that ID. A completed extraction means model output and quote validation
+succeeded; it does not mean the user confirmed the facts.
 
-RunSteps represent fixed pipeline stages. RunEvents represent model calls, tool calls, tool results, checks, state transitions, and structured stop reasons.
+Job extraction Runs will identify the input Job. Planned RunSteps describe
+pipeline stages, while RunEvents capture model calls, tool calls, checks, and
+stop reasons. Hidden model reasoning is not stored.
 
-Raw hidden model reasoning is never stored or displayed.
-
-Business rules and execution responsibilities are defined in [Domain invariants and fixed pipeline](03-domain-invariants-pipeline.md).
+Business rules and execution responsibilities are defined in
+[Domain invariants and fixed pipeline](03-domain-invariants-pipeline.md).

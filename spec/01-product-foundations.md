@@ -14,52 +14,34 @@ The central product promise is:
 
 ### 1.2 Portfolio thesis
 
-The project should provide reviewable evidence of the following capabilities:
-
-- OpenAI Responses API integration
-- domain-specific prompt design and prompt versioning
-- context assembly and evidence budgeting
-- structured outputs and schema validation
-- RAG and hybrid retrieval
-- bounded tool-calling agent workflow built with LangGraph
-- deterministic safety checks
-- LLM-as-judge evaluation
-- human calibration of judges
-- latency, token, cost, and failure observability
-- privacy-aware local application design
-
-It must not claim experience that the implementation does not demonstrate, including multi-agent systems, MCP, A2A, OCR/VLM, fine-tuning, or model training.
+The project demonstrates owner-written Python model integration, structured
+extraction, provenance, RAG, bounded context assembly, deterministic validation,
+and fixed-case evaluation. Public claims must match implemented evidence.
 
 ## 2. Goals and success criteria
 
 ### 2.1 Product goals
 
-1. Import career evidence from supported local document formats.
-2. Extract structured candidate facts while preserving exact source spans.
-3. Require the user to confirm, edit, or reject extracted facts.
-4. Parse a target job description into structured requirements.
-5. Retrieve confirmed evidence relevant to each job requirement.
-6. Generate Japanese, evidence-backed, per-item resume-edit suggestions.
-7. Separate supported resume content from clarification questions and future skill-development advice.
-8. Make retrieval, generation, validation, and agent behavior inspectable in a local UI.
-9. Evaluate quality repeatedly across prompt and model versions.
-10. Publish the code, architecture, synthetic dataset, and sanitized evaluation report without publishing personal data.
+1. Import Markdown career documents and preserve source spans.
+2. Extract facts for human confirmation, editing, or rejection.
+3. Parse pasted job descriptions into inspectable requirements.
+4. Retrieve relevant confirmed evidence using one baseline method.
+5. Generate Japanese suggestions with traceable factual claims.
+6. Make missing evidence visible and keep it separate from resume content.
+7. Evaluate fixed cases and publish a sanitized comparison report.
 
 ### 2.2 Portfolio-ready success
 
-The application is portfolio-ready when all of the following are true:
+- A clean checkout can run the documented local workflow with synthetic data.
+- A reviewer can follow import, review, job analysis, retrieval, and generation.
+- Factual claims reference confirmed evidence that resolves to saved source text.
+- Missing evidence produces an explicit gap rather than fabricated experience.
+- A fixed-case report compares a baseline prompt and one revision, showing
+  outputs, checks, human assessment, and limitations.
+- A ten-minute demo explains one success, two failures, and key trade-offs.
 
-- A reviewer can clone the public repository and run the application locally from documented steps.
-- A synthetic resume and job description complete the primary workflow end to end.
-- Every factual claim in the generated result references one or more valid Evidence IDs.
-- An unsupported job requirement produces no fabricated resume experience.
-- The user can inspect the source excerpt behind each generated claim.
-- The public evaluation suite contains 40–60 representative cases.
-- A private suite contains 10–20 real-use cases without being committed to Git.
-- At least 15 outputs have human labels for judge calibration.
-- A versioned evaluation report compares at least two prompt or model configurations.
-- The Run Detail page explains retrieval, model calls, checks, failures, tokens, latency, and estimated cost.
-- The README and demo can explain one successful case and at least two meaningful failure cases.
+Release stages and acceptance are defined in
+[milestones](08-milestones-acceptance-criteria.md).
 
 ## 3. Target users and usage boundary
 
@@ -103,45 +85,26 @@ The application may be shown locally to a small number of reviewers. Reviewers d
 ### 4.3 Generate resume-edit suggestions
 
 1. The fixed pipeline retrieves confirmed facts for each job requirement.
-2. Candidates are ranked using hybrid retrieval and optional reranking.
+2. Candidates are ranked by the selected baseline retrieval method.
 3. The context builder selects a bounded evidence set.
 4. The generation model creates per-item Japanese resume-edit suggestions.
 5. Each factual claim must cite Evidence IDs in structured output.
 6. Deterministic checks validate references, formatting, privacy, and forbidden content.
-7. An LLM judge evaluates groundedness, relevance, exaggeration risk, and Japanese quality.
+7. Semantic support and writing quality are assessed in the fixed-case evaluation.
 8. The publishing gate assigns a final result status.
-9. The UI separates supported content, clarification requests, and skill-development suggestions.
+9. The UI separates supported content from evidence gaps.
 
-### 4.4 Investigate an evidence gap
+### 4.4 Inspect results
 
-1. Fixed hybrid retrieval runs first.
-2. If evidence coverage is insufficient, the UI shows the missing requirement.
-3. The user may click **Investigate further**.
-4. A bounded, read-only Evidence Agent searches and inspects confirmed evidence.
-5. The Agent returns one structured status:
-   - `SUPPORTED`
-   - `PARTIALLY_SUPPORTED`
-   - `NO_EVIDENCE`
-   - `CONFLICTING_EVIDENCE`
-6. The Agent must cite Evidence IDs or explicitly report that none were found.
-7. The fixed pipeline, not the Agent, decides whether content is publishable.
-
-### 4.5 Review and edit suggestions
-
-For each suggestion, the UI presents:
-
-- original resume content, when available
-- proposed Japanese content
-- related job requirements
-- supporting evidence and source excerpt
-- groundedness and safety results
-- `accept`, `edit`, and `reject` actions
-
-If the user edits a suggestion, the application stores the original generation, edited result, and optional edit reason. User edits do not automatically modify prompts or become training data.
+The user inspects proposed content, related requirements, and supporting source
+excerpts. The interface separates supported content from evidence gaps.
+Suggestion editing workflows and deeper Agent investigation are post-release
+extensions.
 
 ## 5. Output contract
 
-The final product output has three strictly separated sections.
+The first release separates supported content from evidence clarification.
+Optional development advice must remain separate from both.
 
 ### 5.1 Supported resume content
 
@@ -155,7 +118,7 @@ Example intent:
 
 > The job asks for Kubernetes production experience. No confirmed evidence was found. Do you have a project note or work record that demonstrates this experience?
 
-### 5.3 Skill-development suggestions
+### 5.3 Skill-development suggestions (optional extension)
 
 Future learning or project suggestions derived from gaps between the job requirements and confirmed evidence.
 

@@ -4,6 +4,8 @@
 
 对照来源：[数据模型](../02-data-model.md)、[业务规则与固定流程](../03-domain-invariants-pipeline.md)、[周计划与验收](../08-milestones-acceptance-criteria.md)，以及当前 schema、数据库和确认接口。
 
+2026-09-21 范围调整：后续交付顺序与学习分工以[当前里程碑](../08-milestones-acceptance-criteria.md)为准。本文保留审核语义和原始决策记录；旧周次、迁移练习、扩展字段和通用观测不再构成第一版交付前置条件。
+
 ## 1. 范围与初始基线
 
 - Week 1–2 按已约定的精简范围完成，不重新打开。
@@ -25,7 +27,9 @@
 | FactEvidence | 规格中的事实与原文关联；当前以 document_id + source_sequence + evidence_quote 直接表达单来源关联 |
 | Run | 当前是单次抽取的执行记录，成功不代表用户确认 |
 
-## 3. Week 3 拟实现字段
+## 3. Week 3 字段对照
+
+Fact 表格的“当前情况”列保留 Week 3 开始前的历史基线，不代表最新实现状态。最新字段与实现阶段见 [数据模型](../02-data-model.md)。
 
 ### FactDraft 与 facts
 
@@ -52,7 +56,8 @@
 | 模型 / 字段 | Week 3 方案 |
 |---|---|
 | Job.id、source_text | 程序生成稳定 ID，保存原始职位描述 |
-| Job.source_hash、language、imported_at、extraction_version | 随职位输入保存；语言允许未知，版本来自配置；hash 不代表本周增加重复导入处理 |
+| Job.source_hash、language、imported_at | 2026-09-21 MVP 调整：暂缓，直到存在具体消费者；当前 Job 只保留 id 和 source_text |
+| extraction_version | 不放在 Job；实际抽取版本随每次 Run 记录，不能把尚未执行的抽取版本写入输入记录 |
 | JobRequirement.id、job_id | 程序分配并保存；读取同一条记录时稳定，不要求多次模型抽取产生相同 ID |
 | requirement_text | 保留职位描述中支持该要求的原文，并校验确实存在 |
 | normalized_requirement | 模型规范化的要求描述 |
@@ -131,8 +136,8 @@
 
 1. 完成正在练习的拒绝行为：按同一 ID 更新为 rejected，清空确认时间，保留内容与来源。
 2. 多条候选抽取：一个 SourceSpan 可以返回多条 Fact，每条引用分别校验、保存独立 ID，并关联本次实际抽取 Run。固定行为验收使用两条候选，确认其中一条不影响另一条；真实模型的多份工作覆盖情况另用固定样例检查，不假设一份工作只能有一条 Fact。
-3. 迁移：保留旧事实和 ID，旧事实转 confirmed，用 claim 初始化 original_claim，不虚构缺失的历史 Run 关联或确认时间。
-4. 职位抽取：保存原文与稳定 ID、结构化要求、必需/优先/未说明、明示年限，以及成功和失败 Run；不能用假的履历来源记录职位调用。
+3. 职位抽取：保存原文与稳定 ID、结构化要求、必需/优先/未说明、明示年限，以及成功和失败 Run；不能用假的履历来源记录职位调用。
+4. 迁移练习延后，具体时间后续复盘安排：Jack 已删除旧的本地 resume_assistant.db，之后用合成旧库验证保留数据与 ID，不虚构历史 Run 关联或确认时间。迁移仍未实现，未取消，也不计为已完成。
 
 每项实现时接上必要的 UI 操作与结果展示。Week 3 验证可用事实查询只返回
 confirmed；Week 4 验证实际检索排除 pending/rejected，Week 5 验证生成只使用

@@ -1,7 +1,12 @@
 # ADR-0001: Build the v1 Evidence Agent with LangGraph
 
 Date: 2026-09-03
-Status: Accepted
+Status: Deferred for the first release (2026-09-21).
+
+The reduced [release scope](../08-milestones-acceptance-criteria.md) supersedes
+the v1 timing below. LangGraph remains the preferred option if the Evidence
+Agent is resumed; Agent work and its telemetry are not release prerequisites.
+The original decision follows as historical context.
 
 ## Decision
 
