@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
-from app.database import SqliteFactStore
+from app.database import SqliteStore
 from app.dependencies import get_facts, get_store
 from app.schema import Document
 from app.services.facts import Facts
@@ -15,7 +15,7 @@ router = APIRouter()
 @router.post("/documents/import")
 async def import_document(
     file: UploadFile,
-    store: Annotated[SqliteFactStore, Depends(get_store)],
+    store: Annotated[SqliteStore, Depends(get_store)],
 ):
 
     document_id = str(uuid4())
@@ -59,7 +59,7 @@ async def post_document_drafts(
 @router.get("/documents/{document_id}/review")
 def get_document_review(
     document_id: str,
-    store: Annotated[SqliteFactStore, Depends(get_store)],
+    store: Annotated[SqliteStore, Depends(get_store)],
 ):
     document = store.get_document(document_id)
 

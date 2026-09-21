@@ -11,7 +11,7 @@ from app.schema import (
 )
 
 
-class SqliteFactStore:
+class SqliteStore:
     def __init__(self, db_path: str):
         self.db_path: str = db_path
         self.init_db()

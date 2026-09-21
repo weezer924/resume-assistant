@@ -4,7 +4,7 @@ from typing import cast
 
 import pytest
 
-from app.database import SqliteFactStore
+from app.database import SqliteStore
 from app.schema import Document, Job, SourceSpan
 
 DOCUMENT_ID_1 = "doc1"
@@ -39,8 +39,8 @@ def dummy_source_span_3() -> SourceSpan:
 
 
 @pytest.fixture
-def store(tmp_path: Path) -> SqliteFactStore:
-    store = SqliteFactStore(str(tmp_path / "test.db"))
+def store(tmp_path: Path) -> SqliteStore:
+    store = SqliteStore(str(tmp_path / "test.db"))
     store.save_document(
         Document(
             document_id=DOCUMENT_ID_1,
@@ -58,12 +58,12 @@ def store(tmp_path: Path) -> SqliteFactStore:
     return store
 
 
-def test_get_source_span_not_found(store: SqliteFactStore):
+def test_get_source_span_not_found(store: SqliteStore):
     source_span = store.get_source_span(DOCUMENT_ID_1, 999)
     assert source_span is None
 
 
-def test_source_span_sequence_is_not_mixed(store: SqliteFactStore):
+def test_source_span_sequence_is_not_mixed(store: SqliteStore):
     source_span_1 = dummy_source_span_1()
     source_span_2 = dummy_source_span_2()
 
@@ -75,7 +75,7 @@ def test_source_span_sequence_is_not_mixed(store: SqliteFactStore):
     assert retrieved_source_span == source_span_1
 
 
-def test_source_span_retrieval_by_sequence(store: SqliteFactStore):
+def test_source_span_retrieval_by_sequence(store: SqliteStore):
     source_span_1 = dummy_source_span_1()
     source_span_3 = dummy_source_span_3()
 
@@ -90,7 +90,7 @@ def test_source_span_retrieval_by_sequence(store: SqliteFactStore):
     assert retrieved_source_span_3 == source_span_3
 
 
-def test_save_document_with_spans(store: SqliteFactStore):
+def test_save_document_with_spans(store: SqliteStore):
 
     invalid_span = {
         "section": "Invalid",
@@ -113,7 +113,7 @@ def test_save_document_with_spans(store: SqliteFactStore):
     assert store.get_source_span(document.document_id, 1) is None
 
 
-def test_save_job(store: SqliteFactStore):
+def test_save_job(store: SqliteStore):
     job = Job(id="job-1", source_text="We need a python engineer")
 
     store.save_job(job)

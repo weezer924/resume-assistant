@@ -3,7 +3,7 @@ from typing import cast
 
 from fastapi.testclient import TestClient
 
-from app.database import SqliteFactStore
+from app.database import SqliteStore
 from app.dependencies import get_facts, get_store
 from app.main import app
 from app.schema import FactDraft, Job, ModelFactOutput, ModelFactsOutput, SourceSpan
@@ -11,7 +11,7 @@ from app.services.facts import Facts
 
 
 def test_connected_review_flow(tmp_path: Path):
-    store = SqliteFactStore(str(tmp_path / "review.db"))
+    store = SqliteStore(str(tmp_path / "review.db"))
 
     async def extractor(span: SourceSpan) -> ModelFactsOutput:
         return ModelFactsOutput(
@@ -75,7 +75,7 @@ def test_connected_review_flow(tmp_path: Path):
 
 
 def test_fact_reject_api(tmp_path: Path):
-    store = SqliteFactStore(str(tmp_path / "review.db"))
+    store = SqliteStore(str(tmp_path / "review.db"))
 
     async def extractor(span: SourceSpan) -> ModelFactsOutput:
         return ModelFactsOutput(
@@ -128,7 +128,7 @@ def test_fact_reject_api(tmp_path: Path):
 
 
 def test_job_write_api(tmp_path: Path):
-    store = SqliteFactStore(str(tmp_path / "review.db"))
+    store = SqliteStore(str(tmp_path / "review.db"))
 
     app.dependency_overrides[get_store] = lambda: store
 

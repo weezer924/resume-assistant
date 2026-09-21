@@ -1,7 +1,7 @@
 import time
 from collections.abc import Awaitable, Callable
 
-from app.database import SqliteFactStore
+from app.database import SqliteStore
 from app.schema import FactDraft, ModelFactRun, ModelFactsOutput, SourceSpan
 
 
@@ -27,13 +27,13 @@ class SourceSpanNotFound(Exception):
 class Facts:
     def __init__(
         self,
-        store: SqliteFactStore,
+        store: SqliteStore,
         extractor: Callable[[SourceSpan], Awaitable[ModelFactsOutput]],
         model: str,
         prompt_id: str,
         prompt_version: str,
     ) -> None:
-        self.store: SqliteFactStore = store
+        self.store: SqliteStore = store
         self.extractor: Callable[[SourceSpan], Awaitable[ModelFactsOutput]] = extractor
         self.model: str = model
         self.prompt_id: str = prompt_id

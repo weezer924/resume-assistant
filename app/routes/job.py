@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends
 
-from app.database import SqliteFactStore
+from app.database import SqliteStore
 from app.dependencies import get_store
 from app.schema import CreateJobRequest, Job
 
@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.post("/jobs")
 def post_job(
-    request: CreateJobRequest, store: Annotated[SqliteFactStore, Depends(get_store)]
+    request: CreateJobRequest, store: Annotated[SqliteStore, Depends(get_store)]
 ):
 
     job_id = str(uuid4())

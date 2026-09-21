@@ -86,3 +86,15 @@ class Job(BaseModel):
 
 class CreateJobRequest(BaseModel):
     source_text: str
+
+
+class ModelJobRequirementOutput(BaseModel):
+    requirement_text: str
+    normalized_requirement: str
+    category: str
+    required_or_preferred: Literal["required", "preferred", "unspecified"]
+    years_or_level: str | None
+
+
+class ModelJobRequirementsOutput(BaseModel):
+    requirements: list[ModelJobRequirementOutput]

@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from openai import AsyncOpenAI
 
-from app.database import SqliteFactStore
+from app.database import SqliteStore
 from app.schema import Document, ModelFactOutput, ModelFactsOutput, SourceSpan
 from app.services.fact_extraction import OpenAIExtractor
 from app.services.facts import (
@@ -18,8 +18,8 @@ DOCUMENT_ID = "doc1"
 
 
 @pytest.fixture
-def store(tmp_path: Path) -> SqliteFactStore:
-    store = SqliteFactStore(str(tmp_path / "test.db"))
+def store(tmp_path: Path) -> SqliteStore:
+    store = SqliteStore(str(tmp_path / "test.db"))
     store.save_document(
         Document(
             document_id=DOCUMENT_ID, filename="a.md", content="# A\nhello\n# B\nworld"
@@ -73,7 +73,7 @@ async def fake_parse(**_kwargs: object):
     return SimpleNamespace(output_parsed=None)
 
 
-async def test_confirm_updates_pending_candidate(store: SqliteFactStore):
+async def test_confirm_updates_pending_candidate(store: SqliteStore):
     facts = Facts(
         store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
     )
@@ -94,7 +94,7 @@ async def test_confirm_updates_pending_candidate(store: SqliteFactStore):
     assert result.confirmed_at is not None
 
 
-async def test_extract_returns_candidate(store: SqliteFactStore):
+async def test_extract_returns_candidate(store: SqliteStore):
     facts = Facts(
         store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
     )
@@ -108,7 +108,7 @@ async def test_extract_returns_candidate(store: SqliteFactStore):
     assert candidate.source_sequence == 2
 
 
-async def test_extract_returns_mulitip_candidates(store: SqliteFactStore):
+async def test_extract_returns_mulitip_candidates(store: SqliteStore):
     source_span = SourceSpan(
         section="A",
         level=1,
@@ -169,7 +169,7 @@ async def test_extract_returns_mulitip_candidates(store: SqliteFactStore):
     assert pending_second.status == "pending"
 
 
-async def test_extract_rejects_quote_not_in_span(store: SqliteFactStore):
+async def test_extract_rejects_quote_not_in_span(store: SqliteStore):
     facts = Facts(
         store, stub_extractor("c", "nothing"), "model", "prompt_id", "prompt_version"
     )
@@ -178,7 +178,7 @@ async def test_extract_rejects_quote_not_in_span(store: SqliteFactStore):
         _ = await facts.extract(DOCUMENT_ID, 1)
 
 
-async def test_extract_rejects_unknown_document(store: SqliteFactStore):
+async def test_extract_rejects_unknown_document(store: SqliteStore):
     facts = Facts(
         store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
     )
@@ -187,7 +187,7 @@ async def test_extract_rejects_unknown_document(store: SqliteFactStore):
         _ = await facts.extract("nope", 1)
 
 
-async def test_extract_rejects_unknown_sequence(store: SqliteFactStore):
+async def test_extract_rejects_unknown_sequence(store: SqliteStore):
     facts = Facts(
         store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
     )
@@ -196,7 +196,7 @@ async def test_extract_rejects_unknown_sequence(store: SqliteFactStore):
         _ = await facts.extract(DOCUMENT_ID, 99)
 
 
-async def test_extract_modal_fact_run_error_not_in_source_span(store: SqliteFactStore):
+async def test_extract_modal_fact_run_error_not_in_source_span(store: SqliteStore):
     facts = Facts(
         store, stub_extractor("c", "nothing"), "model", "prompt_id", "prompt_version"
     )
@@ -214,7 +214,7 @@ async def test_extract_modal_fact_run_error_not_in_source_span(store: SqliteFact
 
 
 async def test_extract_modal_fact_run_error_runtime_error(
-    store: SqliteFactStore,
+    store: SqliteStore,
 ):
     facts = Facts(store, failing_extractor, "model", "prompt_id", "prompt_version")
 
@@ -230,7 +230,7 @@ async def test_extract_modal_fact_run_error_runtime_error(
     assert run.error.startswith("RuntimeError")
 
 
-async def test_extract_modal_fact_completed(store: SqliteFactStore):
+async def test_extract_modal_fact_completed(store: SqliteStore):
     facts = Facts(
         store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
     )
@@ -258,7 +258,7 @@ async def test_extract_modal_fact_completed(store: SqliteFactStore):
     )
 
 
-async def test_is_using_extract_modal_fact(store: SqliteFactStore):
+async def test_is_using_extract_modal_fact(store: SqliteStore):
     document = Document(document_id="doc", filename="doc.md", content="# A\nold text")
     saved_source_span = SourceSpan(
         section="",
@@ -303,7 +303,7 @@ async def test_extract_output_parsed_none():
         _ = await extractor(span)
 
 
-async def test_extract_saves_pending_candidate(store: SqliteFactStore):
+async def test_extract_saves_pending_candidate(store: SqliteStore):
     facts = Facts(
         store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
     )
@@ -333,7 +333,7 @@ async def test_extract_saves_pending_candidate(store: SqliteFactStore):
     assert run.source_sequence == 2
 
 
-async def test_edit_returns_confirmed_fact_to_pending(store: SqliteFactStore):
+async def test_edit_returns_confirmed_fact_to_pending(store: SqliteStore):
     facts = Facts(
         store,
         stub_extractor("original_claim", "hello"),
@@ -364,7 +364,7 @@ async def test_edit_returns_confirmed_fact_to_pending(store: SqliteFactStore):
     assert len(store.get_facts(DOCUMENT_ID)) == 1
 
 
-async def test_reject_preserves_fact(store: SqliteFactStore):
+async def test_reject_preserves_fact(store: SqliteStore):
     facts = Facts(
         store,
         stub_extractor("original_claim", "hello"),

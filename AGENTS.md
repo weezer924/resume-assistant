@@ -38,7 +38,7 @@ Explicit user decisions override earlier proposals. Apply approved alignment dec
 
 Local-first, single-user FastAPI app. SQLite stores original documents, immutable
 source spans, reviewable facts, and extraction Runs. Thin routes in `app/routes/`
-call `Facts` in `app/services/facts.py` and `SqliteFactStore` in `app/database.py`.
+call `Facts` in `app/services/facts.py` and `SqliteStore` in `app/database.py`.
 Extraction validates quotes against saved spans and persists multiple pending
 candidates. Confirm/edit/reject update the same Fact ID. Review cannot change
 source evidence, so confirmation does not repeat quote validation. See
@@ -46,7 +46,7 @@ source evidence, so confirmation does not repeat quote validation. See
 
 Dependencies are injected in `app/dependencies.py`:
 
-- `SqliteFactStore(db_path)` (`app/database.py`) owns schema creation and all reads/writes; `get_store` binds it to `database/resume_assistant.db`.
+- `SqliteStore(db_path)` (`app/database.py`) owns schema creation and all reads/writes; `get_store` binds it to `database/resume_assistant.db`.
 - `OpenAIExtractor(client, model)` (`app/services/fact_extraction.py`) owns the model call and passes `store=False`. `app/dependencies.py` supplies the shared model/prompt configuration used by extraction and Run records. `Facts` accepts any `async` callable `SourceSpan -> ModelFactsOutput`.
 
 Tests replace both: `tests/test_facts.py` uses a `tmp_path` sqlite file and a stub extractor; `tests/test_documents.py` overrides `get_store` through `app.dependency_overrides`.

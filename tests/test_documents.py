@@ -5,7 +5,7 @@ from typing import cast
 import pytest
 from fastapi.testclient import TestClient
 
-from app.database import SqliteFactStore
+from app.database import SqliteStore
 from app.dependencies import get_store
 from app.main import app
 from app.schema import SourceSpan
@@ -17,9 +17,7 @@ def parsing_should_not_run(_content: str) -> list[SourceSpan]:
 
 @pytest.fixture
 def client(tmp_path: Path) -> Iterator[TestClient]:
-    app.dependency_overrides[get_store] = lambda: SqliteFactStore(
-        str(tmp_path / "test.db")
-    )
+    app.dependency_overrides[get_store] = lambda: SqliteStore(str(tmp_path / "test.db"))
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -42,7 +40,7 @@ def test_import_document_with_file(client: TestClient, tmp_path: Path):
     assert len(spans) == 7
 
     document_id = cast(str, response.json()["document_id"])
-    store = SqliteFactStore(str(tmp_path / "test.db"))
+    store = SqliteStore(str(tmp_path / "test.db"))
     saved_span = store.get_source_span(document_id, first["sequence"])
     assert saved_span == first
 
