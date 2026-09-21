@@ -2,7 +2,7 @@ import time
 from collections.abc import Awaitable, Callable
 
 from app.database import SqliteFactStore
-from app.schema import FactDraft, ModelFactOutput, ModelFactRun, SourceSpan
+from app.schema import FactDraft, ModelFactRun, ModelFactsOutput, SourceSpan
 
 
 class FactNotFound(Exception):
@@ -28,13 +28,13 @@ class Facts:
     def __init__(
         self,
         store: SqliteFactStore,
-        extractor: Callable[[SourceSpan], Awaitable[ModelFactOutput]],
+        extractor: Callable[[SourceSpan], Awaitable[ModelFactsOutput]],
         model: str,
         prompt_id: str,
         prompt_version: str,
     ) -> None:
         self.store: SqliteFactStore = store
-        self.extractor: Callable[[SourceSpan], Awaitable[ModelFactOutput]] = extractor
+        self.extractor: Callable[[SourceSpan], Awaitable[ModelFactsOutput]] = extractor
         self.model: str = model
         self.prompt_id: str = prompt_id
         self.prompt_version: str = prompt_version
@@ -99,7 +99,7 @@ class Facts:
             raise RuntimeError("Fact could not be rejected")
         return rejected
 
-    async def extract(self, document_id: str, sequence: int) -> FactDraft:
+    async def extract(self, document_id: str, sequence: int) -> list[FactDraft]:
         span = self._locate_span(document_id, sequence)
         start_at = time.time()
 
@@ -108,7 +108,8 @@ class Facts:
             output = await self.extractor(span)
 
             # Check that the extracted evidence is actually in the source span
-            self._check_evidence(span, output.evidence_quote)
+            for fact in output.facts:
+                self._check_evidence(span, fact.evidence_quote)
 
         except Exception as e:
             completed_at = time.time()
@@ -145,13 +146,15 @@ class Facts:
                 )
             )
 
-        fact_id = self.store.save_fact(
-            document_id, output.claim, output.evidence_quote, span["sequence"], run_id
+        fact_ids = self.store.save_facts(
+            document_id, output.facts, span["sequence"], run_id
         )
 
-        fact = self.store.get_fact(fact_id)
+        facts: list[FactDraft] = []
+        for fact_id in fact_ids:
+            fact_draft = self.store.get_fact(fact_id)
+            if fact_draft is None:
+                raise RuntimeError("Saved fact could not be read")
+            facts.append(fact_draft)
 
-        if fact is None:
-            raise RuntimeError("Saved fact could not be read")
-
-        return fact
+        return facts

@@ -6,15 +6,17 @@ from fastapi.testclient import TestClient
 from app.database import SqliteFactStore
 from app.dependencies import get_facts, get_store
 from app.main import app
-from app.schema import FactDraft, ModelFactOutput, SourceSpan
+from app.schema import FactDraft, ModelFactOutput, ModelFactsOutput, SourceSpan
 from app.services.facts import Facts
 
 
 def test_connected_review_flow(tmp_path: Path):
     store = SqliteFactStore(str(tmp_path / "review.db"))
 
-    async def extractor(span: SourceSpan) -> ModelFactOutput:
-        return ModelFactOutput(claim="test claim", evidence_quote=span["body"])
+    async def extractor(span: SourceSpan) -> ModelFactsOutput:
+        return ModelFactsOutput(
+            facts=[ModelFactOutput(claim="test claim", evidence_quote=span["body"])]
+        )
 
     facts = Facts(store, extractor, "model", "prompt_id", "1")
 
@@ -37,10 +39,12 @@ def test_connected_review_flow(tmp_path: Path):
             assert imported.status_code == 200
             doc_id = cast(str, imported.json()["document_id"])
 
-            draft = client.post(f"/documents/{doc_id}/spans/1/draft")
-            assert draft.status_code == 200
+            response = client.post(f"/documents/{doc_id}/spans/1/facts")
+            assert response.status_code == 200
 
-            candidate = FactDraft.model_validate(draft.json()["fact_draft"])
+            fact_drafts = cast(list[FactDraft], response.json()["fact_drafts"])
+            assert len(fact_drafts) == 1
+            candidate = FactDraft.model_validate(fact_drafts[0])
 
             confirmed = client.post("/fact/", json={"fact_id": candidate.id})
             assert confirmed.status_code == 200
@@ -72,8 +76,10 @@ def test_connected_review_flow(tmp_path: Path):
 def test_fact_reject_api(tmp_path: Path):
     store = SqliteFactStore(str(tmp_path / "review.db"))
 
-    async def extractor(span: SourceSpan) -> ModelFactOutput:
-        return ModelFactOutput(claim="test claim", evidence_quote=span["body"])
+    async def extractor(span: SourceSpan) -> ModelFactsOutput:
+        return ModelFactsOutput(
+            facts=[ModelFactOutput(claim="test claim", evidence_quote=span["body"])]
+        )
 
     facts = Facts(store, extractor, "model", "prompt_id", "1")
 
@@ -97,10 +103,13 @@ def test_fact_reject_api(tmp_path: Path):
             assert imported.status_code == 200
             doc_id = cast(str, imported.json()["document_id"])
 
-            draft = client.post(f"/documents/{doc_id}/spans/1/draft")
-            assert draft.status_code == 200
+            response = client.post(f"/documents/{doc_id}/spans/1/facts")
+            assert response.status_code == 200
 
-            candidate = FactDraft.model_validate(draft.json()["fact_draft"])
+            fact_drafts = cast(list[FactDraft], response.json()["fact_drafts"])
+            assert len(fact_drafts) == 1
+
+            candidate = FactDraft.model_validate(fact_drafts[0])
 
             rejected = client.post(
                 f"/facts/{candidate.id}/reject",

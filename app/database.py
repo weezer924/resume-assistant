@@ -1,7 +1,7 @@
 import sqlite3
 from typing import Literal, cast
 
-from app.schema import Document, FactDraft, ModelFactRun, SourceSpan
+from app.schema import Document, FactDraft, ModelFactOutput, ModelFactRun, SourceSpan
 
 
 class SqliteFactStore:
@@ -181,18 +181,18 @@ class SqliteFactStore:
         with sqlite3.connect(self.db_path) as connection:
             cursor = connection.execute(
                 """
-                        INSERT INTO facts (
-                            document_id,
-                            claim,
-                            evidence_quote,
-                            original_claim,
-                            source_sequence,
-                            status,
-                            extraction_run_id,
-                            confirmed_at
-                        )
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
+                    INSERT INTO facts (
+                        document_id,
+                        claim,
+                        evidence_quote,
+                        original_claim,
+                        source_sequence,
+                        status,
+                        extraction_run_id,
+                        confirmed_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
                 (
                     document_id,
                     claim,
@@ -208,6 +208,49 @@ class SqliteFactStore:
                 raise ValueError("Failed to insert fact")
 
             return cursor.lastrowid
+
+    def save_facts(
+        self,
+        document_id: str,
+        facts: list[ModelFactOutput],
+        source_sequence: int,
+        extraction_run_id: int,
+    ) -> list[int]:
+        with sqlite3.connect(self.db_path) as connection:
+            fact_ids: list[int] = []
+            for fact in facts:
+                cursor = connection.execute(
+                    """
+                        INSERT INTO facts (
+                            document_id,
+                            claim,
+                            evidence_quote,
+                            original_claim,
+                            source_sequence,
+                            status,
+                            extraction_run_id,
+                            confirmed_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        document_id,
+                        fact.claim,
+                        fact.evidence_quote,
+                        fact.claim,
+                        source_sequence,
+                        "pending",
+                        extraction_run_id,
+                        None,
+                    ),
+                )
+
+                if cursor.lastrowid is None:
+                    raise RuntimeError("Failed to insert fact")
+
+                fact_ids.append(cursor.lastrowid)
+
+            return fact_ids
 
     def confirm_fact(self, fact_id: int) -> FactDraft | None:
         with sqlite3.connect(self.db_path) as connection:
@@ -275,7 +318,7 @@ class SqliteFactStore:
         with sqlite3.connect(self.db_path) as connection:
             cursor = connection.execute(
                 """
-                SELECT id, document_id, claim, evidence_quote,original_claim, source_sequence, status,extraction_run_id,confirmed_at, created_at, updated_at
+                SELECT id, document_id, claim, evidence_quote, original_claim, source_sequence, status, extraction_run_id, confirmed_at, created_at, updated_at
                 FROM facts
                 WHERE document_id = ?
                 """,

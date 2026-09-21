@@ -6,7 +6,7 @@ import pytest
 from openai import AsyncOpenAI
 
 from app.database import SqliteFactStore
-from app.schema import Document, ModelFactOutput, SourceSpan
+from app.schema import Document, ModelFactOutput, ModelFactsOutput, SourceSpan
 from app.services.fact_extraction import OpenAIExtractor
 from app.services.facts import (
     EvidenceNotInSourceSpan,
@@ -46,13 +46,26 @@ def store(tmp_path: Path) -> SqliteFactStore:
 
 
 def stub_extractor(claim: str, evidence_quote: str):
-    async def extract(_span: SourceSpan) -> ModelFactOutput:
-        return ModelFactOutput(claim=claim, evidence_quote=evidence_quote)
+    async def extract(_span: SourceSpan) -> ModelFactsOutput:
+        return ModelFactsOutput(
+            facts=[ModelFactOutput(claim=claim, evidence_quote=evidence_quote)]
+        )
 
     return extract
 
 
-async def failing_extractor(_span: SourceSpan) -> ModelFactOutput:
+async def stub_multiple_extractor(_span: SourceSpan) -> ModelFactsOutput:
+    return ModelFactsOutput(
+        facts=[
+            ModelFactOutput(claim="Built an API", evidence_quote="Built an API"),
+            ModelFactOutput(
+                claim="Maintained a website", evidence_quote="Maintained a website"
+            ),
+        ]
+    )
+
+
+async def failing_extractor(_span: SourceSpan) -> ModelFactsOutput:
     raise RuntimeError("Synthetic model failure")
 
 
@@ -65,7 +78,10 @@ async def test_confirm_updates_pending_candidate(store: SqliteFactStore):
         store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
     )
 
-    candidate = await facts.extract(DOCUMENT_ID, 2)
+    candidates = await facts.extract(DOCUMENT_ID, 2)
+    assert len(candidates) == 1
+    candidate = candidates[0]
+
     confirmed = facts.confirm(candidate.id)
 
     result = store.get_fact(candidate.id)
@@ -83,11 +99,74 @@ async def test_extract_returns_candidate(store: SqliteFactStore):
         store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
     )
 
-    result = await facts.extract(DOCUMENT_ID, 2)
+    candidates = await facts.extract(DOCUMENT_ID, 2)
+    assert len(candidates) == 1
+    candidate = candidates[0]
 
-    assert result.claim == "c"
-    assert result.evidence_quote == "world"
-    assert result.source_sequence == 2
+    assert candidate.claim == "c"
+    assert candidate.evidence_quote == "world"
+    assert candidate.source_sequence == 2
+
+
+async def test_extract_returns_mulitip_candidates(store: SqliteFactStore):
+    source_span = SourceSpan(
+        section="A",
+        level=1,
+        body="Built an API. Maintained a website.",
+        sequence=1,
+    )
+
+    store.save_document_with_spans(
+        Document(
+            document_id="multi-doc",
+            filename="a.md",
+            content="# A\nBuilt an API. Maintained a website.",
+        ),
+        [source_span],
+    )
+
+    facts = Facts(
+        store,
+        stub_multiple_extractor,
+        "model",
+        "prompt_id",
+        "prompt_version",
+    )
+
+    candidates = await facts.extract("multi-doc", 1)
+    assert len(candidates) == 2
+    first, second = candidates
+    assert first.id != second.id
+
+    saved_first = store.get_fact(first.id)
+    saved_second = store.get_fact(second.id)
+
+    assert saved_first is not None
+    assert saved_second is not None
+    assert saved_first == first
+    assert saved_second == second
+    assert saved_first.status == "pending"
+    assert saved_second.status == "pending"
+    assert saved_first.claim == "Built an API"
+    assert saved_first.evidence_quote == "Built an API"
+    assert saved_second.claim == "Maintained a website"
+    assert saved_second.evidence_quote == "Maintained a website"
+    assert saved_first.extraction_run_id is not None
+    assert saved_first.extraction_run_id == saved_second.extraction_run_id
+
+    for candidate in (saved_first, saved_second):
+        assert candidate.document_id == "multi-doc"
+        assert candidate.source_sequence == 1
+
+    _ = facts.confirm(first.id)
+
+    confirmed_first = store.get_fact(first.id)
+    pending_second = store.get_fact(second.id)
+
+    assert confirmed_first is not None
+    assert pending_second is not None
+    assert confirmed_first.status == "confirmed"
+    assert pending_second.status == "pending"
 
 
 async def test_extract_rejects_quote_not_in_span(store: SqliteFactStore):
@@ -156,11 +235,13 @@ async def test_extract_modal_fact_completed(store: SqliteFactStore):
         store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
     )
 
-    result = await facts.extract(DOCUMENT_ID, 2)
+    candidates = await facts.extract(DOCUMENT_ID, 2)
+    assert len(candidates) == 1
+    candidate = candidates[0]
 
-    assert result.claim == "c"
-    assert result.evidence_quote == "world"
-    assert result.source_sequence == 2
+    assert candidate.claim == "c"
+    assert candidate.evidence_quote == "world"
+    assert candidate.source_sequence == 2
 
     # Check that a successful model fact run was saved
     runs = store.get_model_fact_runs(DOCUMENT_ID)
@@ -169,8 +250,12 @@ async def test_extract_modal_fact_completed(store: SqliteFactStore):
     assert run.status == "completed"
     assert run.error is None
     assert run.output is not None
-    saved_output = ModelFactOutput.model_validate_json(run.output)
-    assert saved_output == ModelFactOutput(claim="c", evidence_quote="world")
+    saved_output = ModelFactsOutput.model_validate_json(run.output)
+    assert saved_output == ModelFactsOutput(
+        facts=[
+            ModelFactOutput(claim="c", evidence_quote="world"),
+        ]
+    )
 
 
 async def test_is_using_extract_modal_fact(store: SqliteFactStore):
@@ -188,11 +273,13 @@ async def test_is_using_extract_modal_fact(store: SqliteFactStore):
         store, stub_extractor("c", "saved text"), "model", "prompt_id", "prompt_version"
     )
 
-    fact_draft = await facts.extract(document.document_id, 1)
+    candidates = await facts.extract(document.document_id, 1)
+    assert len(candidates) == 1
+    candidate = candidates[0]
 
-    assert fact_draft.claim == "c"
-    assert fact_draft.evidence_quote == "saved text"
-    assert fact_draft.source_sequence == 1
+    assert candidate.claim == "c"
+    assert candidate.evidence_quote == "saved text"
+    assert candidate.source_sequence == 1
 
 
 async def test_extract_output_parsed_none():
@@ -221,11 +308,13 @@ async def test_extract_saves_pending_candidate(store: SqliteFactStore):
         store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
     )
 
-    result = await facts.extract(DOCUMENT_ID, 2)
-    saved = store.get_fact(result.id)
+    candidates = await facts.extract(DOCUMENT_ID, 2)
+    assert len(candidates) == 1
+    candidate = candidates[0]
+    saved = store.get_fact(candidate.id)
 
     assert saved is not None
-    assert saved == result
+    assert saved == candidate
     assert saved.status == "pending"
     assert saved.claim == "c"
     assert saved.original_claim == "c"
@@ -253,7 +342,9 @@ async def test_edit_returns_confirmed_fact_to_pending(store: SqliteFactStore):
         "prompt_version",
     )
 
-    candidate = await facts.extract(DOCUMENT_ID, 1)
+    candidates = await facts.extract(DOCUMENT_ID, 1)
+    assert len(candidates) == 1
+    candidate = candidates[0]
 
     _ = facts.confirm(candidate.id)
     _ = facts.edit(candidate.id, "edited claim")
@@ -282,7 +373,9 @@ async def test_reject_preserves_fact(store: SqliteFactStore):
         "prompt_version",
     )
 
-    candidate = await facts.extract(DOCUMENT_ID, 1)
+    candidates = await facts.extract(DOCUMENT_ID, 1)
+    assert len(candidates) == 1
+    candidate = candidates[0]
 
     _ = facts.confirm(candidate.id)
     result = facts.reject(candidate.id)

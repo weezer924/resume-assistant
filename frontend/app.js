@@ -3,8 +3,10 @@ const $ = (selector, root = document) => root.querySelector(selector);
 let review = null;
 let busy = false;
 const storageKey = 'resume-assistant-document';
+
 function remember(id) { try { sessionStorage.setItem(storageKey, id); } catch { /* UI works without storage. */ } }
 function remembered() { try { return sessionStorage.getItem(storageKey); } catch { return null; } }
+
 async function api(path, options = {}) {
   const response = await fetch(path, options);
   let body;
@@ -15,7 +17,11 @@ async function api(path, options = {}) {
   }
   return body;
 }
-function json(method, body) { return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }; }
+
+function json(method, body) {
+  return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+}
+
 async function action(operation) {
   if (busy) return;
   busy = true;
@@ -26,13 +32,18 @@ async function action(operation) {
   catch (error) { $('#error').textContent = error.message || 'Connection failed. Check that the server is running.'; $('#error').hidden = false; }
   finally { busy = false; controls.forEach(([el, disabled]) => { if (el.isConnected) el.disabled = disabled; }); }
 }
-function selectedSpan() { return review?.spans.find(span => span.sequence === Number($('#span-select').value)); }
+
+function selectedSpan() {
+  return review?.spans.find(span => span.sequence === Number($('#span-select').value));
+}
+
 function renderFacts() {
   const span = selectedSpan();
   $('#source-body').textContent = span?.body || '';
   $('#extract').disabled = !span;
   const facts = review.facts.filter(fact => fact.source_sequence === span?.sequence);
   $('#count').textContent = `${facts.length} ${facts.length === 1 ? 'fact' : 'facts'}`;
+  $('#empty').textContent = 'No candidates yet. Extract facts from the selected section.';
   $('#empty').hidden = facts.length > 0;
   $('#facts').replaceChildren();
   for (const fact of facts) {
@@ -63,7 +74,7 @@ function renderFacts() {
     reject.disabled = fact.status === 'rejected';
     reject.textContent = fact.status === 'rejected' ? 'Rejected' : 'Reject';
     reject.onclick = () => action(async () => {
-      const response = await api(`/facts/${fact.id}/reject`, {method: 'POST'});
+      const response = await api(`/facts/${fact.id}/reject`, { method: 'POST' });
       updateFact(response.fact);
     });
     const form = $('.edit-form', card);
@@ -82,7 +93,9 @@ function renderFacts() {
     $('#facts').append(card);
   }
 }
+
 function updateFact(fact) { const index = review.facts.findIndex(item => item.id === fact.id); if (index < 0) review.facts.push(fact); else review.facts[index] = fact; renderFacts(); }
+
 async function loadReview(id) {
   const loaded = await api(`/documents/${encodeURIComponent(id)}/review`);
   review = loaded;
@@ -94,6 +107,7 @@ async function loadReview(id) {
   $('#workspace').hidden = false;
   renderFacts();
 }
+
 $('#span-select').onchange = renderFacts;
 let droppedFile = null;
 const importForm = $('#import-form');
@@ -102,11 +116,14 @@ fileInput.onchange = () => {
   droppedFile = null;
   $('#selected-file').textContent = fileInput.files[0]?.name || 'or drop a file here';
 };
+
 importForm.ondragover = event => {
   event.preventDefault();
   if (!busy) importForm.classList.add('drag-over');
 };
+
 importForm.ondragleave = () => importForm.classList.remove('drag-over');
+
 importForm.ondrop = event => {
   event.preventDefault();
   importForm.classList.remove('drag-over');
@@ -117,6 +134,7 @@ importForm.ondrop = event => {
   fileInput.value = '';
   $('#selected-file').textContent = file.name;
 };
+
 importForm.onsubmit = event => {
   event.preventDefault();
   const file = droppedFile || fileInput.files[0];
@@ -131,13 +149,21 @@ importForm.onsubmit = event => {
     await loadReview(imported.document_id);
   });
 };
+
 $('#extract').onclick = () => {
   const span = selectedSpan();
   if (!span) return;
   action(async () => {
-    const response = await api(`/documents/${encodeURIComponent(review.document_id)}/spans/${span.sequence}/draft`, { method: 'POST' });
-    updateFact(response.fact_draft);
+    const response = await api(`/documents/${encodeURIComponent(review.document_id)}/spans/${span.sequence}/facts`, { method: 'POST' });
+    for (const fact of response.fact_drafts) {
+      updateFact(fact);
+    }
+    if (response.fact_drafts.length === 0) {
+      $('#empty').textContent = 'No new facts found in this section.';
+      $('#empty').hidden = false;
+    }
   });
 };
+
 const lastDocument = remembered();
 if (lastDocument) action(async () => { await loadReview(lastDocument); });

@@ -52,6 +52,10 @@ class ModelFactOutput(BaseModel):
     evidence_quote: str
 
 
+class ModelFactsOutput(BaseModel):
+    facts: list[ModelFactOutput]
+
+
 # 统一提供模型标识、prompt 标识和 prompt 版本，供模型调用与 Run 记录使用。
 class ExtractionConfig(BaseModel):
     model: str

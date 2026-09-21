@@ -46,14 +46,14 @@ async def import_document(
     return {"document_id": document_id, "spans": spans}
 
 
-@router.post("/documents/{document_id}/spans/{sequence}/draft")
+@router.post("/documents/{document_id}/spans/{sequence}/facts")
 async def post_document_drafts(
     document_id: str,
     sequence: int,
     facts: Annotated[Facts, Depends(get_facts)],
 ):
-    fact_draft = await facts.extract(document_id, sequence)
-    return {"fact_draft": fact_draft.model_dump()}
+    fact_drafts = await facts.extract(document_id, sequence)
+    return {"fact_drafts": fact_drafts}
 
 
 @router.get("/documents/{document_id}/review")
