@@ -17,11 +17,17 @@ class Jobs:
         self,
         store: SqliteStore,
         extractor: Callable[[Job], Awaitable[ModelJobRequirementsOutput]],
+        model: str,
+        prompt_id: str,
+        prompt_version: str,
     ) -> None:
         self.store: SqliteStore = store
         self.extractor: Callable[[Job], Awaitable[ModelJobRequirementsOutput]] = (
             extractor
         )
+        self.model: str = model
+        self.prompt_id: str = prompt_id
+        self.prompt_version: str = prompt_version
 
     async def extract(self, job_id: str) -> ModelJobRequirementsOutput:
         job = self.store.get_job(job_id)

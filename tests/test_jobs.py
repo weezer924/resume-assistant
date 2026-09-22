@@ -58,7 +58,7 @@ async def stub_not_matched_requirements(_job: Job) -> ModelJobRequirementsOutput
 
 
 async def test_extract_job(store: SqliteStore):
-    jobs = Jobs(store, stub_requirements)
+    jobs = Jobs(store, stub_requirements, "model", "prompt_id", "prompt_version")
     output = await jobs.extract("job-1")
 
     assert len(output.requirements) == 2
@@ -69,7 +69,9 @@ async def test_extract_job(store: SqliteStore):
 
 
 async def test_extract_job_requirement_not_in_job(store: SqliteStore):
-    jobs = Jobs(store, stub_not_matched_requirements)
+    jobs = Jobs(
+        store, stub_not_matched_requirements, "model", "prompt_id", "prompt_version"
+    )
 
     with pytest.raises(RequirementNotInJob):
         _ = await jobs.extract("job-1")

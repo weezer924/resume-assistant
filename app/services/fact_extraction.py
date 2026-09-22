@@ -2,9 +2,9 @@ from openai import AsyncOpenAI
 
 from app.schema import ModelFactsOutput, SourceSpan
 
-PROMPT_ID = "fact_extraction"
-PROMPT_VERSION = "2.0"  # updated whenever the prompt changes
-PROMPT = (
+FACT_PROMPT_ID = "fact_extraction"
+FACT_PROMPT_VERSION = "2.0"  # updated whenever the prompt changes
+FACT_PROMPT = (
     "Extract all factual resume claims from the supplied source span. "
     "Do not add information not present in the source. "
     "The evidence_quote must be copied exactly from the source."
@@ -26,7 +26,7 @@ class FactAIExtractor:
             input=[
                 {
                     "role": "developer",
-                    "content": PROMPT,
+                    "content": FACT_PROMPT,
                 },
                 {
                     "role": "user",
