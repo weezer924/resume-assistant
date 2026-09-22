@@ -2,8 +2,47 @@ from typing import Literal, TypedDict
 
 from pydantic import BaseModel
 
-# Schema 定义字段和类型；BaseModel 负责运行时结构校验，TypedDict 只提供类型提示。
-# 它们本身不证明内容真实，也不负责写入数据库。
+
+# API request body
+class ConfirmFactRequest(BaseModel):
+    fact_id: int
+
+
+class EditFactRequest(BaseModel):
+    claim: str
+
+
+class CreateJobRequest(BaseModel):
+    source_text: str
+
+
+# LLM output
+class ModelFactOutput(BaseModel):
+    claim: str
+    evidence_quote: str
+
+
+class ModelFactsOutput(BaseModel):
+    facts: list[ModelFactOutput]
+
+
+class ModelJobRequirementOutput(BaseModel):
+    requirement_text: str
+    normalized_requirement: str
+    category: str
+    required_or_preferred: Literal["required", "preferred", "unspecified"]
+    years_or_level: str | None
+
+
+class ModelJobRequirementsOutput(BaseModel):
+    requirements: list[ModelJobRequirementOutput]
+
+
+# DB
+class Document(BaseModel):
+    document_id: str
+    filename: str
+    content: str
 
 
 class SourceSpan(TypedDict):
@@ -13,8 +52,6 @@ class SourceSpan(TypedDict):
     sequence: int
 
 
-# 抽取路径中，程序校验模型的原文引用后，补上选定片段的 source_sequence。
-# 抽取成功后保存为 pending 候选；返回值包含数据库 ID 和审核信息。
 class FactDraft(BaseModel):
     id: int
     document_id: str
@@ -29,43 +66,16 @@ class FactDraft(BaseModel):
     updated_at: str
 
 
-# 确认只接收已有候选 ID；来源和引用从数据库读取。
-class ConfirmFactRequest(BaseModel):
-    fact_id: int
+class Job(BaseModel):
+    id: str
+    source_text: str
 
 
-class EditFactRequest(BaseModel):
-    claim: str
+class JobRequirement(ModelJobRequirementOutput):
+    id: int
+    job_id: str
 
 
-class Document(BaseModel):
-    document_id: str
-    filename: str
-    content: str
-
-
-# 模型只提供声明和原文引用，来源段落编号由程序确定。
-# Pydantic 校验结构；服务检查引用是否逐字存在于选定原文片段中。
-# 引用存在不等于声明一定被引用支持，不能把这项检查当作事实真实性验证。
-class ModelFactOutput(BaseModel):
-    claim: str
-    evidence_quote: str
-
-
-class ModelFactsOutput(BaseModel):
-    facts: list[ModelFactOutput]
-
-
-# 统一提供模型标识、prompt 标识和 prompt 版本，供模型调用与 Run 记录使用。
-class ExtractionConfig(BaseModel):
-    model: str
-    prompt_id: str
-    prompt_version: str
-
-
-# 记录一次抽取使用的来源、模型和 prompt 配置、时间、结果及错误。
-# completed 表示抽取和引用校验成功，不表示用户已确认 Fact。
-# failed 表示模型调用或引用校验失败；保存失败记录后，服务仍向外抛出原异常。
 class ModelFactRun(BaseModel):
     document_id: str
     source_sequence: int
@@ -79,22 +89,7 @@ class ModelFactRun(BaseModel):
     error: str | None
 
 
-class Job(BaseModel):
-    id: str
-    source_text: str
-
-
-class CreateJobRequest(BaseModel):
-    source_text: str
-
-
-class ModelJobRequirementOutput(BaseModel):
-    requirement_text: str
-    normalized_requirement: str
-    category: str
-    required_or_preferred: Literal["required", "preferred", "unspecified"]
-    years_or_level: str | None
-
-
-class ModelJobRequirementsOutput(BaseModel):
-    requirements: list[ModelJobRequirementOutput]
+class ExtractionConfig(BaseModel):
+    model: str
+    prompt_id: str
+    prompt_version: str

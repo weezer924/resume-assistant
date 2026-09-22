@@ -12,7 +12,7 @@ from app.schema import ExtractionConfig
 from app.services.fact_extraction import (
     PROMPT_ID,
     PROMPT_VERSION,
-    OpenAIExtractor,
+    FactAIExtractor,
 )
 
 MODEL = "gpt-5-mini"
@@ -33,7 +33,7 @@ def get_store() -> SqliteStore:
 def get_facts() -> Facts:
     return Facts(
         get_store(),
-        OpenAIExtractor(AsyncOpenAI(), config.model),
+        FactAIExtractor(AsyncOpenAI(), config.model),
         config.model,
         config.prompt_id,
         config.prompt_version,

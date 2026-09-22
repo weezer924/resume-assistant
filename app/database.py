@@ -5,8 +5,10 @@ from app.schema import (
     Document,
     FactDraft,
     Job,
+    JobRequirement,
     ModelFactOutput,
     ModelFactRun,
+    ModelJobRequirementOutput,
     SourceSpan,
 )
 
@@ -79,6 +81,18 @@ class SqliteStore:
                 CREATE TABLE IF NOT EXISTS jobs (
                     id TEXT PRIMARY KEY,
                     source_text TEXT NOT NULL
+                )
+            """)
+
+            _ = connection.execute("""
+                CREATE TABLE IF NOT EXISTS job_requirements (
+                    id INTEGER PRIMARY KEY,
+                    job_id TEXT NOT NULL,
+                    requirement_text TEXT NOT NULL,
+                    normalized_requirement TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    required_or_preferred TEXT NOT NULL,
+                    years_or_level TEXT
                 )
             """)
 
@@ -542,3 +556,77 @@ class SqliteStore:
                 return None
 
             return Job(id=row[0], source_text=row[1])
+
+    def save_job_requirements(
+        self,
+        job_id: str,
+        requirements: list[ModelJobRequirementOutput],
+    ) -> list[int]:
+        with sqlite3.connect(self.db_path) as connection:
+            requirement_ids: list[int] = []
+            for requirement in requirements:
+                cursor = connection.execute(
+                    """
+                    INSERT INTO job_requirements (
+                        job_id, requirement_text, normalized_requirement, category, required_or_preferred, years_or_level
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        job_id,
+                        requirement.requirement_text,
+                        requirement.normalized_requirement,
+                        requirement.category,
+                        requirement.required_or_preferred,
+                        requirement.years_or_level,
+                    ),
+                )
+
+                if cursor.lastrowid is None:
+                    raise RuntimeError("Failed to insert requirement")
+
+                requirement_ids.append(cursor.lastrowid)
+
+            return requirement_ids
+
+    def get_job_requirements(self, job_id: str) -> list[JobRequirement]:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                SELECT id, job_id, requirement_text, normalized_requirement, category, required_or_preferred, years_or_level
+                FROM job_requirements
+                WHERE job_id = ?
+                ORDER BY id
+                """,
+                (job_id,),
+            )
+
+            rows = cast(
+                list[
+                    tuple[
+                        int,  # id: int
+                        str,  # job_id: str
+                        str,  # requirement_text: str
+                        str,  # normalized_requirement: str
+                        str,  # category: str
+                        Literal[
+                            "required", "preferred", "unspecified"
+                        ],  # required_or_preferred: str
+                        str | None,  # years_or_level: str | None
+                    ]
+                ],
+                cursor.fetchall(),
+            )
+
+            return [
+                JobRequirement(
+                    id=row[0],
+                    job_id=row[1],
+                    requirement_text=row[2],
+                    normalized_requirement=row[3],
+                    category=row[4],
+                    required_or_preferred=row[5],
+                    years_or_level=row[6],
+                )
+                for row in rows
+            ]

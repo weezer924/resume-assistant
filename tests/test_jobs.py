@@ -4,9 +4,7 @@ import pytest
 
 from app.database import SqliteStore
 from app.schema import Job, ModelJobRequirementOutput, ModelJobRequirementsOutput
-from app.services.jobs import (
-    Jobs,
-)
+from app.services.jobs import Jobs, RequirementNotInJob
 
 
 @pytest.fixture
@@ -45,6 +43,20 @@ async def stub_requirements(_job: Job) -> ModelJobRequirementsOutput:
     )
 
 
+async def stub_not_matched_requirements(_job: Job) -> ModelJobRequirementsOutput:
+    return ModelJobRequirementsOutput(
+        requirements=[
+            ModelJobRequirementOutput(
+                requirement_text="Kubernetes experience is required.",
+                normalized_requirement="Kubernetes experience",
+                category="technical_skill",
+                required_or_preferred="required",
+                years_or_level=None,
+            )
+        ]
+    )
+
+
 async def test_extract_job(store: SqliteStore):
     jobs = Jobs(store, stub_requirements)
     output = await jobs.extract("job-1")
@@ -54,3 +66,10 @@ async def test_extract_job(store: SqliteStore):
     assert output.requirements[0].required_or_preferred == "required"
     assert output.requirements[1].requirement_text == "AWS experience is preferred."
     assert output.requirements[1].required_or_preferred == "preferred"
+
+
+async def test_extract_job_requirement_not_in_job(store: SqliteStore):
+    jobs = Jobs(store, stub_not_matched_requirements)
+
+    with pytest.raises(RequirementNotInJob):
+        _ = await jobs.extract("job-1")

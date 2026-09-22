@@ -11,7 +11,7 @@ PROMPT = (
 )
 
 
-class OpenAIExtractor:
+class FactAIExtractor:
     def __init__(
         self,
         client: AsyncOpenAI,

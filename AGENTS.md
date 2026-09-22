@@ -47,7 +47,7 @@ source evidence, so confirmation does not repeat quote validation. See
 Dependencies are injected in `app/dependencies.py`:
 
 - `SqliteStore(db_path)` (`app/database.py`) owns schema creation and all reads/writes; `get_store` binds it to `database/resume_assistant.db`.
-- `OpenAIExtractor(client, model)` (`app/services/fact_extraction.py`) owns the model call and passes `store=False`. `app/dependencies.py` supplies the shared model/prompt configuration used by extraction and Run records. `Facts` accepts any `async` callable `SourceSpan -> ModelFactsOutput`.
+- `FactAIExtractor(client, model)` (`app/services/fact_extraction.py`) owns the model call and passes `store=False`. `app/dependencies.py` supplies the shared model/prompt configuration used by extraction and Run records. `Facts` accepts any `async` callable `SourceSpan -> ModelFactsOutput`.
 
 Tests replace both: `tests/test_facts.py` uses a `tmp_path` sqlite file and a stub extractor; `tests/test_documents.py` overrides `get_store` through `app.dependency_overrides`.
 

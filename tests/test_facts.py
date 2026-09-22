@@ -7,7 +7,7 @@ from openai import AsyncOpenAI
 
 from app.database import SqliteStore
 from app.schema import Document, ModelFactOutput, ModelFactsOutput, SourceSpan
-from app.services.fact_extraction import OpenAIExtractor
+from app.services.fact_extraction import FactAIExtractor
 from app.services.facts import (
     EvidenceNotInSourceSpan,
     Facts,
@@ -288,7 +288,7 @@ async def test_extract_output_parsed_none():
         parse=AsyncMock(return_value=SimpleNamespace(output_parsed=None))
     )
 
-    extractor = OpenAIExtractor(client, "test-model")
+    extractor = FactAIExtractor(client, "test-model")
     span: SourceSpan = {
         "section": "Experience",
         "level": 1,

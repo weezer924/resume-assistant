@@ -8,6 +8,10 @@ class JobNotFound(Exception):
     pass
 
 
+class RequirementNotInJob(Exception):
+    pass
+
+
 class Jobs:
     def __init__(
         self,
@@ -25,6 +29,12 @@ class Jobs:
         if job is None:
             raise JobNotFound(job_id)
 
-        requirements = await self.extractor(job)
+        output = await self.extractor(job)
 
-        return requirements
+        for requirement in output.requirements:
+            if requirement.requirement_text not in job.source_text:
+                raise RequirementNotInJob(
+                    "generate text is not found in the source text from job"
+                )
+
+        return output

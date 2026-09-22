@@ -5,7 +5,7 @@ from typing import cast
 import pytest
 
 from app.database import SqliteStore
-from app.schema import Document, Job, SourceSpan
+from app.schema import Document, Job, ModelJobRequirementOutput, SourceSpan
 
 DOCUMENT_ID_1 = "doc1"
 DOCUMENT_ID_2 = "doc2"
@@ -120,3 +120,38 @@ def test_save_job(store: SqliteStore):
     saved_job = store.get_job(job.id)
 
     assert saved_job == job
+
+
+def test_save_job_requirement(store: SqliteStore):
+    job = Job(id="job-1", source_text="We need a python engineer")
+    store.save_job(job)
+
+    requirements = [
+        ModelJobRequirementOutput(
+            requirement_text="Fast API framework experience",
+            normalized_requirement="Fast API experience",
+            category="Tech",
+            required_or_preferred="required",
+            years_or_level=None,
+        ),
+        ModelJobRequirementOutput(
+            requirement_text="Have a knowledge of MLOps",
+            normalized_requirement="MLOps experience",
+            category="Tech",
+            required_or_preferred="preferred",
+            years_or_level=None,
+        ),
+    ]
+
+    requirement_ids = store.save_job_requirements(job.id, requirements)
+
+    saved = store.get_job_requirements(job.id)
+
+    assert len(saved) == len(requirement_ids) == 2
+    assert saved[0].id == requirement_ids[0]
+    assert saved[1].id == requirement_ids[1]
+    assert saved[0].id != saved[1].id
+
+    for actual, expected in zip(saved, requirements):
+        assert actual.job_id == job.id
+        assert actual.model_dump(exclude={"id", "job_id"}) == expected.model_dump()
