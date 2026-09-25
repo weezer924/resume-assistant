@@ -9,7 +9,12 @@ resumes to job descriptions without inventing experience.
 *Recording coming soon: import a synthetic resume, inspect extracted claims and
 source quotes, then confirm, edit, and reject individual facts.*
 
-<!-- Replace the recording notice with the GitHub-hosted video URL when available. -->
+### Get Source Span from MD document
+https://github.com/user-attachments/assets/24abc584-6542-4440-8d9e-6f7951d5a598
+
+
+### Extract with LLM (OpenAI API)
+https://github.com/user-attachments/assets/2776ecdb-5d39-4265-a2b2-c92cda8183c0
 
 ## What works today
 
