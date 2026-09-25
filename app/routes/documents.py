@@ -4,7 +4,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
 from app.database import SqliteStore
-from app.dependencies import get_facts, get_store
+from app.dependencies import get_facts_service, get_store
 from app.schema import Document
 from app.services.facts import Facts
 from app.services.markdown import make_source_span
@@ -50,7 +50,7 @@ async def import_document(
 async def post_document_drafts(
     document_id: str,
     sequence: int,
-    facts: Annotated[Facts, Depends(get_facts)],
+    facts: Annotated[Facts, Depends(get_facts_service)],
 ):
     fact_drafts = await facts.extract(document_id, sequence)
     return {"fact_drafts": fact_drafts}

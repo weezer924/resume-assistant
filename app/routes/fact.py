@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from app.dependencies import get_facts
+from app.dependencies import get_facts_service
 from app.schema import ConfirmFactRequest, EditFactRequest
 from app.services.facts import Facts
 
@@ -12,7 +12,7 @@ router = APIRouter()
 @router.post("/fact/")
 async def post_fact_draft(
     confirm_fact_request: ConfirmFactRequest,
-    facts: Annotated[Facts, Depends(get_facts)],
+    facts: Annotated[Facts, Depends(get_facts_service)],
 ):
 
     confirmed = facts.confirm(confirm_fact_request.fact_id)
@@ -28,7 +28,7 @@ async def post_fact_draft(
 def edit_fact(
     fact_id: int,
     request: EditFactRequest,
-    facts: Annotated[Facts, Depends(get_facts)],
+    facts: Annotated[Facts, Depends(get_facts_service)],
 ):
     return {"fact": facts.edit(fact_id, request.claim).model_dump()}
 
@@ -36,6 +36,6 @@ def edit_fact(
 @router.post("/facts/{fact_id}/reject")
 def reject_fact(
     fact_id: int,
-    facts: Annotated[Facts, Depends(get_facts)],
+    facts: Annotated[Facts, Depends(get_facts_service)],
 ):
     return {"fact": facts.reject(fact_id).model_dump()}

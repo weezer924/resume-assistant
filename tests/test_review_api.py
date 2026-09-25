@@ -4,7 +4,7 @@ from typing import cast
 from fastapi.testclient import TestClient
 
 from app.database import SqliteStore
-from app.dependencies import get_facts, get_store
+from app.dependencies import get_facts_service, get_store
 from app.main import app
 from app.schema import FactDraft, Job, ModelFactOutput, ModelFactsOutput, SourceSpan
 from app.services.facts import Facts
@@ -21,7 +21,7 @@ def test_connected_review_flow(tmp_path: Path):
     facts = Facts(store, extractor, "model", "prompt_id", "1")
 
     app.dependency_overrides[get_store] = lambda: store
-    app.dependency_overrides[get_facts] = lambda: facts
+    app.dependency_overrides[get_facts_service] = lambda: facts
 
     try:
         with TestClient(app) as client:
@@ -85,7 +85,7 @@ def test_fact_reject_api(tmp_path: Path):
     facts = Facts(store, extractor, "model", "prompt_id", "1")
 
     app.dependency_overrides[get_store] = lambda: store
-    app.dependency_overrides[get_facts] = lambda: facts
+    app.dependency_overrides[get_facts_service] = lambda: facts
 
     try:
         with TestClient(app) as client:

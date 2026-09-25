@@ -42,7 +42,7 @@ def get_store() -> SqliteStore:
     return SqliteStore(db_path)
 
 
-def get_facts() -> Facts:
+def get_facts_service() -> Facts:
     return Facts(
         get_store(),
         FactAIExtractor(AsyncOpenAI(), fact_config.model),
@@ -52,7 +52,7 @@ def get_facts() -> Facts:
     )
 
 
-def get_job_requirements() -> Jobs:
+def get_job_requirements_service() -> Jobs:
     return Jobs(
         get_store(),
         JobAIExtractor(AsyncOpenAI(), job_config.model),
