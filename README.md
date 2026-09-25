@@ -6,8 +6,7 @@ resumes to job descriptions without inventing experience.
 
 ## Demo
 
-*Recording coming soon: import a synthetic resume, inspect extracted claims and
-source quotes, then confirm, edit, and reject individual facts.*
+*import a synthetic resume, inspect extracted claims and source quotes, then confirm, edit, and reject individual facts.*
 
 ### Get Source Span from MD document
 https://github.com/user-attachments/assets/24abc584-6542-4440-8d9e-6f7951d5a598
