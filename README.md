@@ -13,7 +13,7 @@ source quotes, then confirm, edit, and reject individual facts.*
 https://github.com/user-attachments/assets/24abc584-6542-4440-8d9e-6f7951d5a598
 
 
-### Extract with LLM (OpenAI API)
+### Here is the Output for extracted from source span with LLM (OpenAI API)
 https://github.com/user-attachments/assets/2776ecdb-5d39-4265-a2b2-c92cda8183c0
 
 ## What works today
