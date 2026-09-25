@@ -4,18 +4,12 @@ A local-first Python application for turning career documents into reviewable
 facts, with each statement linked to its original source. The goal is to tailor
 resumes to job descriptions without inventing experience.
 
-**Working today:** Markdown import → structured fact extraction → human review.
-Job analysis is in progress; retrieval and resume-edit generation are planned.
-
 ## Demo
 
 *Recording coming soon: import a synthetic resume, inspect extracted claims and
 source quotes, then confirm, edit, and reject individual facts.*
 
 <!-- Replace the recording notice with the GitHub-hosted video URL when available. -->
-
-Try the same workflow locally with the included
-[synthetic Japanese resume](tests/fixtures/sample_resume.md).
 
 ## What works today
 
@@ -52,8 +46,7 @@ The stack is **Python 3.12+, FastAPI, Pydantic, SQLite, and the OpenAI SDK**, wi
 plain HTML/CSS/JavaScript served by FastAPI. Thin routes call services and a
 SQLite store; tests substitute temporary databases and stub model calls.
 
-The backend is owner-written Python practice, with AI assistance for explanation
-and review; the frontend is AI-assisted. See the
+The backend is myself-written Python, with AI assistance for review; the frontend is AI-assisted. See the
 [collaboration protocol](spec/08-milestones-acceptance-criteria.md#22-learning-and-collaboration-protocol).
 
 ## Run locally
@@ -79,10 +72,7 @@ Start with a separate demo database:
 RESUME_ASSISTANT_DB_PATH=database/demo.db make dev
 ```
 
-Open [the review UI](http://127.0.0.1:8000/) or
-[interactive API docs](http://127.0.0.1:8000/docs). No frontend build is needed.
-Reuse the same database path to keep your data; use a fresh path if an older
-checkout created an incompatible schema.
+Open [the review UI](http://127.0.0.1:8000/) Reuse the same database path to keep your data;
 
 1. Upload `tests/fixtures/sample_resume.md` using **Import document**.
 2. Select a source section and click **Extract facts**.
@@ -97,10 +87,6 @@ OpenAI during extraction; requests use `store=False`. This is not an offline app
 Use synthetic data for public demos. `.env`, `database/`, and `private/` are
 ignored by Git.
 
-To remove demo data, stop the server and delete `database/demo.db` and any
-`database/demo.db-*` sidecar files. Clear the tab's session storage or close the
-tab to discard its remembered document selection.
-
 ## Validation and limits
 
 ```sh
@@ -112,12 +98,6 @@ make test                  # pytest; no API key needed
 Tests cover persistence, quote validation, review transitions, and API behavior
 using stub extractors. They do not establish real-model accuracy; a fixed-case
 model evaluation and prompt comparison are planned.
-
-- Single-user, local development app; no authentication or public deployment.
-- Markdown only; no PDF/DOCX import or exported resume generation.
-- No completed job-to-evidence retrieval or resume-suggestion workflow yet.
-- Repeated extraction can add duplicate candidates. There is no historical
-  document picker or supported migration workflow for older database schemas.
 
 ## Roadmap and specifications
 
