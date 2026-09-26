@@ -154,6 +154,22 @@ def test_job_write_api(tmp_path: Path):
             assert job.id != ""
             assert job.source_text == source_text
 
+            fetched = client.get(f"/jobs/{job.id}")
+            assert fetched.status_code == 200, fetched.text
+            assert Job.model_validate(fetched.json()["job"]) == job
+
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_get_missing_job_returns_404(tmp_path: Path):
+    store = SqliteStore(str(tmp_path / "review.db"))
+    app.dependency_overrides[get_store] = lambda: store
+
+    try:
+        with TestClient(app) as client:
+            response = client.get("/jobs/missing-job")
+            assert response.status_code == 404
     finally:
         app.dependency_overrides.clear()
 

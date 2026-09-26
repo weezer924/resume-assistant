@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.database import SqliteStore
 from app.dependencies import get_job_requirements_service, get_store
@@ -22,6 +22,14 @@ def post_job(
 
     store.save_job(job)
     return {"job": store.get_job(job_id)}
+
+
+@router.get("/jobs/{job_id}")
+def get_job(job_id: str, store: Annotated[SqliteStore, Depends(get_store)]):
+    job = store.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {"job": job}
 
 
 @router.post("/jobs/{job_id}/requirements/extract")
