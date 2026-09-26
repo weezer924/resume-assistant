@@ -30,7 +30,7 @@ class ModelJobRequirementOutput(BaseModel):
     requirement_text: str
     normalized_requirement: str
     category: str
-    required_or_preferred: Literal["required", "preferred", "unspecified"]
+    required_or_preferred: Literal["required", "preferred"]
     years_or_level: str | None
 
 

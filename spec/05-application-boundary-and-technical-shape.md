@@ -15,7 +15,7 @@ confirm/edit/reject on stable IDs and show the resulting state.
 ### 14.3 Job
 
 Accept pasted JD text and display extracted requirements and their
-required/preferred/unspecified classification.
+required/preferred classification.
 
 ### 14.4 Suggestions
 

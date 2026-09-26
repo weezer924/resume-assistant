@@ -127,7 +127,7 @@ requirement extracted from a Job.
 | `requirement_text` | Supporting quote from the job description |
 | `normalized_requirement` | Normalized requirement statement |
 | `category` | Requirement category |
-| `required_or_preferred` | `required`, `preferred`, or `unspecified` |
+| `required_or_preferred` | `required`, `preferred` |
 | `years_or_level` | Explicitly stated experience or proficiency; otherwise absent |
 
 Application code validates the supporting quote against the saved job text.

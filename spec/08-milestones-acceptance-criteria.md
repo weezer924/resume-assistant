@@ -60,9 +60,9 @@ completed in Week 3. Migration practice remains deferred beyond the first releas
 
 ### Week 4 — Job analysis and confirmed-only reads · next
 
-- [ ] Save pasted JD text and read it back by stable Job ID.
-- [ ] Extract and persist requirements with stable IDs and validated source quotes.
-- [ ] Classify required/preferred/unspecified; preserve only explicit levels.
+- [x] Save pasted JD text and read it back by stable Job ID.
+- [x] Extract and persist requirements with stable IDs and validated source quotes.
+- [x] Classify required/preferred; preserve only explicit levels.
 - [ ] Record successful and failed extraction Runs against the actual Job input.
 - [ ] Connect pasted JD input and requirement inspection to the HTML UI.
 - [ ] Verify usable-fact reads exclude pending and rejected records.

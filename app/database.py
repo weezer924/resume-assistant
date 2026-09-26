@@ -609,9 +609,7 @@ class SqliteStore:
                         str,  # requirement_text: str
                         str,  # normalized_requirement: str
                         str,  # category: str
-                        Literal[
-                            "required", "preferred", "unspecified"
-                        ],  # required_or_preferred: str
+                        Literal["required", "preferred"],  # required_or_preferred: str
                         str | None,  # years_or_level: str | None
                     ]
                 ],
