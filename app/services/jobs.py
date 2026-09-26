@@ -43,4 +43,6 @@ class Jobs:
                     "generate text is not found in the source text from job"
                 )
 
+        _ = self.store.save_job_requirements(job_id, output.requirements)
+
         return output

@@ -4,10 +4,19 @@ from typing import cast
 from fastapi.testclient import TestClient
 
 from app.database import SqliteStore
-from app.dependencies import get_facts_service, get_store
+from app.dependencies import get_facts_service, get_job_requirements_service, get_store
 from app.main import app
-from app.schema import FactDraft, Job, ModelFactOutput, ModelFactsOutput, SourceSpan
+from app.schema import (
+    FactDraft,
+    Job,
+    ModelFactOutput,
+    ModelFactsOutput,
+    ModelJobRequirementOutput,
+    ModelJobRequirementsOutput,
+    SourceSpan,
+)
 from app.services.facts import Facts
+from app.services.jobs import Jobs
 
 
 def test_connected_review_flow(tmp_path: Path):
@@ -144,6 +153,62 @@ def test_job_write_api(tmp_path: Path):
             assert store.get_job(job.id) == job
             assert job.id != ""
             assert job.source_text == source_text
+
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_get_requirement_id_from_job_id(tmp_path: Path):
+    store = SqliteStore(str(tmp_path / "review.db"))
+
+    async def job_extractor(_job: Job) -> ModelJobRequirementsOutput:
+        return ModelJobRequirementsOutput(
+            requirements=[
+                ModelJobRequirementOutput(
+                    requirement_text="Fast API framework experience",
+                    normalized_requirement="Fast API experience",
+                    category="Tech",
+                    required_or_preferred="required",
+                    years_or_level=None,
+                ),
+                ModelJobRequirementOutput(
+                    requirement_text="Have a knowledge of MLOps",
+                    normalized_requirement="MLOps experience",
+                    category="Tech",
+                    required_or_preferred="preferred",
+                    years_or_level=None,
+                ),
+            ]
+        )
+
+    jobs = Jobs(store, job_extractor, "model", "prompt_id", "1")
+
+    app.dependency_overrides[get_store] = lambda: store
+    app.dependency_overrides[get_job_requirements_service] = lambda: jobs
+
+    try:
+        with TestClient(app) as client:
+            imported = client.post(
+                "/jobs",
+                json={
+                    "source_text": "Fast API framework experience, Have a knowledge of MLOps"
+                },
+            )
+
+            assert imported.status_code == 200
+            job = Job.model_validate(imported.json()["job"])
+            extracted = client.post(f"/jobs/{job.id}/requirements/extract")
+
+            assert extracted.status_code == 200, extracted.text
+
+            requirements = store.get_job_requirements(job.id)
+
+            assert len(requirements) == 2
+            assert requirements[0].id != requirements[1].id
+            assert requirements[0].requirement_text == "Fast API framework experience"
+            assert requirements[0].required_or_preferred == "required"
+            assert requirements[1].requirement_text == "Have a knowledge of MLOps"
+            assert requirements[1].required_or_preferred == "preferred"
 
     finally:
         app.dependency_overrides.clear()

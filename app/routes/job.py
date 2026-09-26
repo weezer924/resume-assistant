@@ -4,8 +4,9 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends
 
 from app.database import SqliteStore
-from app.dependencies import get_store
+from app.dependencies import get_job_requirements_service, get_store
 from app.schema import CreateJobRequest, Job
+from app.services.jobs import Jobs
 
 router = APIRouter()
 
@@ -21,3 +22,12 @@ def post_job(
 
     store.save_job(job)
     return {"job": store.get_job(job_id)}
+
+
+@router.post("/jobs/{job_id}/requirements/extract")
+async def post_job_extract(
+    job_id: str, jobs: Annotated[Jobs, Depends(get_job_requirements_service)]
+):
+    output = await jobs.extract(job_id)
+
+    return {"requirements": output}
