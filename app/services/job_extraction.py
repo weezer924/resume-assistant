@@ -3,11 +3,14 @@ from openai import AsyncOpenAI
 from app.schema import Job, ModelJobRequirementsOutput
 
 JOB_PROMPT_ID = "job_extraction"
-JOB_PROMPT_VERSION = "1.0"  # updated whenever the prompt changes
+JOB_PROMPT_VERSION = "1.1"  # updated whenever the prompt changes
 JOB_PROMPT = (
-    "Extract all requirements from the supplied job requirements. "
+    "Extract requirements explicitly marked as required or preferred from the job description. "
+    "Do not infer a label; omit requirements without an explicit required or preferred label. "
     "Do not add information not present in the source. "
-    "The requirement_text must be copied exactly from the job requirement description."
+    "Copy requirement_text exactly from the job description. "
+    "Set years_or_level to the exact words in requirement_text only when a year count "
+    "or proficiency level is explicitly stated; otherwise set it to null."
 )
 
 

@@ -12,6 +12,10 @@ class RequirementNotInJob(Exception):
     pass
 
 
+class RequirementLevelNotInJob(Exception):
+    pass
+
+
 class Jobs:
     def __init__(
         self,
@@ -41,6 +45,13 @@ class Jobs:
             if requirement.requirement_text not in job.source_text:
                 raise RequirementNotInJob(
                     "generate text is not found in the source text from job"
+                )
+            if requirement.years_or_level is not None and (
+                not requirement.years_or_level.strip()
+                or requirement.years_or_level not in requirement.requirement_text
+            ):
+                raise RequirementLevelNotInJob(
+                    "years_or_level is not found in the requirement quote"
                 )
 
         requirement_ids = self.store.save_job_requirements(job_id, output.requirements)

@@ -62,7 +62,7 @@ completed in Week 3. Migration practice remains deferred beyond the first releas
 
 - [x] Save pasted JD text and read it back by stable Job ID.
 - [x] Extract and persist requirements with stable IDs and validated source quotes.
-- [x] Classify required/preferred; preserve only explicit levels.
+- [x] Classify explicitly labeled required/preferred requirements; preserve only explicit levels. Unlabeled requirements are deferred.
 - [ ] Record successful and failed extraction Runs against the actual Job input.
 - [ ] Connect pasted JD input and requirement inspection to the HTML UI.
 - [ ] Verify usable-fact reads exclude pending and rejected records.

@@ -4,7 +4,7 @@ import pytest
 
 from app.database import SqliteStore
 from app.schema import Job, ModelJobRequirementOutput, ModelJobRequirementsOutput
-from app.services.jobs import Jobs, RequirementNotInJob
+from app.services.jobs import Jobs, RequirementLevelNotInJob, RequirementNotInJob
 
 
 @pytest.fixture
@@ -84,3 +84,51 @@ async def test_extract_job_requirement_not_in_job(store: SqliteStore):
         _ = await jobs.extract("job-1")
 
     assert store.get_job_requirements("job-1") == []
+
+
+async def test_extract_job_rejects_level_not_in_requirement(store: SqliteStore):
+    async def invented_level(_job: Job) -> ModelJobRequirementsOutput:
+        return ModelJobRequirementsOutput(
+            requirements=[
+                ModelJobRequirementOutput(
+                    requirement_text="Python experience is required.",
+                    normalized_requirement="Python experience",
+                    category="technical_skill",
+                    required_or_preferred="required",
+                    years_or_level="5 years",
+                )
+            ]
+        )
+
+    jobs = Jobs(store, invented_level, "model", "prompt_id", "prompt_version")
+
+    with pytest.raises(RequirementLevelNotInJob):
+        _ = await jobs.extract("job-1")
+
+    assert store.get_job_requirements("job-1") == []
+
+
+async def test_extract_job_preserves_explicit_level(store: SqliteStore):
+    store.save_job(
+        Job(id="job-2", source_text="5 years of Python experience required.")
+    )
+
+    async def explicit_level(_job: Job) -> ModelJobRequirementsOutput:
+        return ModelJobRequirementsOutput(
+            requirements=[
+                ModelJobRequirementOutput(
+                    requirement_text="5 years of Python experience required.",
+                    normalized_requirement="Python experience",
+                    category="technical_skill",
+                    required_or_preferred="required",
+                    years_or_level="5 years",
+                )
+            ]
+        )
+
+    jobs = Jobs(store, explicit_level, "model", "prompt_id", "prompt_version")
+
+    requirements = await jobs.extract("job-2")
+
+    assert requirements[0].years_or_level == "5 years"
+    assert store.get_job_requirements("job-2") == requirements

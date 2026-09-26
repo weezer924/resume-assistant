@@ -62,7 +62,7 @@ Fact 表格的“当前情况”列保留 Week 3 开始前的历史基线，不�
 | requirement_text | 保留职位描述中支持该要求的原文，并校验确实存在 |
 | normalized_requirement | 模型规范化的要求描述 |
 | category | 使用小而明确的分类，不引入复杂分类体系 |
-| required_or_preferred | 必需 / 优先；建议允许 unspecified，避免原文不明确时强行猜测，需同步正文定义 |
+| required_or_preferred | 必需 / 优先；2026-09-26 收窄首版范围：仅抽取原文明示这两类的要求，未标明类别的要求暂不抽取，遇到实际案例再扩展 |
 | years_or_level | 只记录原文明示的年限或等级，没有则为空 |
 | priority、status | 已决定延后，直到存在明确的消费行为再定义 |
 
