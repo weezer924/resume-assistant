@@ -9,6 +9,7 @@ from app.main import app
 from app.schema import (
     FactDraft,
     Job,
+    JobRequirement,
     ModelFactOutput,
     ModelFactsOutput,
     ModelJobRequirementOutput,
@@ -218,8 +219,13 @@ def test_get_requirement_id_from_job_id(tmp_path: Path):
             assert extracted.status_code == 200, extracted.text
 
             requirements = store.get_job_requirements(job.id)
+            returned = [
+                JobRequirement.model_validate(item)
+                for item in cast(list[object], extracted.json()["requirements"])
+            ]
 
             assert len(requirements) == 2
+            assert returned == requirements
             assert requirements[0].id != requirements[1].id
             assert requirements[0].requirement_text == "Fast API framework experience"
             assert requirements[0].required_or_preferred == "required"

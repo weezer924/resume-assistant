@@ -1,7 +1,7 @@
 from collections.abc import Awaitable, Callable
 
 from app.database import SqliteStore
-from app.schema import Job, ModelJobRequirementsOutput
+from app.schema import Job, JobRequirement, ModelJobRequirementsOutput
 
 
 class JobNotFound(Exception):
@@ -29,7 +29,7 @@ class Jobs:
         self.prompt_id: str = prompt_id
         self.prompt_version: str = prompt_version
 
-    async def extract(self, job_id: str) -> ModelJobRequirementsOutput:
+    async def extract(self, job_id: str) -> list[JobRequirement]:
         job = self.store.get_job(job_id)
 
         if job is None:
@@ -43,6 +43,18 @@ class Jobs:
                     "generate text is not found in the source text from job"
                 )
 
-        _ = self.store.save_job_requirements(job_id, output.requirements)
-
-        return output
+        requirement_ids = self.store.save_job_requirements(job_id, output.requirements)
+        return [
+            JobRequirement(
+                id=requirement_id,
+                job_id=job_id,
+                requirement_text=requirement.requirement_text,
+                normalized_requirement=requirement.normalized_requirement,
+                category=requirement.category,
+                required_or_preferred=requirement.required_or_preferred,
+                years_or_level=requirement.years_or_level,
+            )
+            for requirement_id, requirement in zip(
+                requirement_ids, output.requirements, strict=True
+            )
+        ]

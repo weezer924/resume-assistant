@@ -36,6 +36,6 @@ def get_job(job_id: str, store: Annotated[SqliteStore, Depends(get_store)]):
 async def post_job_extract(
     job_id: str, jobs: Annotated[Jobs, Depends(get_job_requirements_service)]
 ):
-    output = await jobs.extract(job_id)
+    requirements = await jobs.extract(job_id)
 
-    return {"requirements": output}
+    return {"requirements": requirements}
