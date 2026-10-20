@@ -2,7 +2,14 @@ import time
 from collections.abc import Awaitable, Callable
 
 from app.database import SqliteStore
-from app.schema import FactDraft, ModelFactRun, ModelFactsOutput, SourceSpan
+from app.schema import (
+    EmbeddingRun,
+    FactDraft,
+    ModelFactRun,
+    ModelFactsOutput,
+    SourceSpan,
+)
+from app.services.embedding import Embedder
 
 
 class FactNotFound(Exception):
@@ -32,12 +39,16 @@ class Facts:
         model: str,
         prompt_id: str,
         prompt_version: str,
+        embedder: Embedder,
+        embedding_model: str,
     ) -> None:
         self.store: SqliteStore = store
         self.extractor: Callable[[SourceSpan], Awaitable[ModelFactsOutput]] = extractor
         self.model: str = model
         self.prompt_id: str = prompt_id
         self.prompt_version: str = prompt_version
+        self.embedder: Embedder = embedder
+        self.embedding_model: str = embedding_model
 
     # 对应的文档和原文片段存在
     def _locate_span(self, document_id: str, sequence: int) -> SourceSpan:
@@ -59,7 +70,7 @@ class Facts:
                 "Evidence quote was not found in the source span"
             )
 
-    def confirm(self, fact_id: int) -> FactDraft:
+    async def confirm(self, fact_id: int) -> FactDraft:
         fact = self.store.get_fact(fact_id)
         if fact is None:
             raise FactNotFound(fact_id)
@@ -74,7 +85,41 @@ class Facts:
         confirmed = self.store.confirm_fact(fact_id)
         if confirmed is None:
             raise RuntimeError("Fact could not be confirmed")
+
+        # Confirmation is already persisted. If embedding fails the fact stays
+        # confirmed but unsearchable; a later confirm or rebuild fills the gap.
+        await self._embed_fact(confirmed)
         return confirmed
+
+    async def _embed_fact(self, fact: FactDraft) -> None:
+        start_at = time.time()
+        try:
+            vectors = await self.embedder([f"{fact.claim}\n{fact.evidence_quote}"])
+            self.store.upsert_fact_embedding(fact.id, self.embedding_model, vectors[0])
+        except Exception as e:
+            _ = self.store.save_embedding_run(
+                self._embedding_run(
+                    fact.id, start_at, "failed", f"{type(e).__name__}: {e}"
+                )
+            )
+            raise
+        else:
+            _ = self.store.save_embedding_run(
+                self._embedding_run(fact.id, start_at, "completed", None)
+            )
+
+    def _embedding_run(
+        self, fact_id: int, start_at: float, status: str, error: str | None
+    ) -> EmbeddingRun:
+        return EmbeddingRun(
+            input_kind="fact",
+            input_ref=fact_id,
+            model=self.embedding_model,
+            start_at=start_at,
+            completed_at=time.time(),
+            status=status,
+            error=error,
+        )
 
     def edit(self, fact_id: int, claim: str) -> FactDraft:
         fact = self.store.get_fact(fact_id)

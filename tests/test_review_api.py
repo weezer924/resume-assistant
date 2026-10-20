@@ -20,6 +20,10 @@ from app.services.facts import Facts
 from app.services.jobs import Jobs
 
 
+async def stub_embedder(texts: list[str]) -> list[list[float]]:
+    return [[1.0, 0.0] for _ in texts]
+
+
 def test_connected_review_flow(tmp_path: Path):
     store = SqliteStore(str(tmp_path / "review.db"))
 
@@ -28,7 +32,9 @@ def test_connected_review_flow(tmp_path: Path):
             facts=[ModelFactOutput(claim="test claim", evidence_quote=span["body"])]
         )
 
-    facts = Facts(store, extractor, "model", "prompt_id", "1")
+    facts = Facts(
+        store, extractor, "model", "prompt_id", "1", stub_embedder, "test-embedding"
+    )
 
     app.dependency_overrides[get_store] = lambda: store
     app.dependency_overrides[get_facts_service] = lambda: facts
@@ -92,7 +98,9 @@ def test_fact_reject_api(tmp_path: Path):
             facts=[ModelFactOutput(claim="test claim", evidence_quote=span["body"])]
         )
 
-    facts = Facts(store, extractor, "model", "prompt_id", "1")
+    facts = Facts(
+        store, extractor, "model", "prompt_id", "1", stub_embedder, "test-embedding"
+    )
 
     app.dependency_overrides[get_store] = lambda: store
     app.dependency_overrides[get_facts_service] = lambda: facts

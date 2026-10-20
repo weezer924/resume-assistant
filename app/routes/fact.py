@@ -15,7 +15,7 @@ async def post_fact_draft(
     facts: Annotated[Facts, Depends(get_facts_service)],
 ):
 
-    confirmed = facts.confirm(confirm_fact_request.fact_id)
+    confirmed = await facts.confirm(confirm_fact_request.fact_id)
 
     return {
         "message": "Fact confirmed",

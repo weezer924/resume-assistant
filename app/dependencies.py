@@ -4,6 +4,7 @@ from pathlib import Path
 from openai import AsyncOpenAI
 
 from app.database import SqliteStore
+from app.services.embedding import OpenAIEmbedder
 from app.services.facts import Facts
 from app.services.jobs import Jobs
 
@@ -22,6 +23,7 @@ from app.services.job_extraction import (
 )
 
 MODEL = "gpt-5-mini"
+EMBEDDING_MODEL = "text-embedding-3-small"
 
 fact_config = ExtractionConfig(
     model=MODEL,
@@ -42,6 +44,10 @@ def get_store() -> SqliteStore:
     return SqliteStore(db_path)
 
 
+def get_embedder() -> OpenAIEmbedder:
+    return OpenAIEmbedder(AsyncOpenAI(), EMBEDDING_MODEL)
+
+
 def get_facts_service() -> Facts:
     return Facts(
         get_store(),
@@ -49,6 +55,8 @@ def get_facts_service() -> Facts:
         fact_config.model,
         fact_config.prompt_id,
         fact_config.prompt_version,
+        get_embedder(),
+        EMBEDDING_MODEL,
     )
 
 

@@ -17,6 +17,10 @@ from app.services.facts import (
 DOCUMENT_ID = "doc1"
 
 
+async def stub_embedder(texts: list[str]) -> list[list[float]]:
+    return [[1.0, 0.0] for _ in texts]
+
+
 @pytest.fixture
 def store(tmp_path: Path) -> SqliteStore:
     store = SqliteStore(str(tmp_path / "test.db"))
@@ -75,14 +79,20 @@ async def fake_parse(**_kwargs: object):
 
 async def test_confirm_updates_pending_candidate(store: SqliteStore):
     facts = Facts(
-        store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
+        store,
+        stub_extractor("c", "world"),
+        "model",
+        "prompt_id",
+        "prompt_version",
+        stub_embedder,
+        "test-embedding",
     )
 
     candidates = await facts.extract(DOCUMENT_ID, 2)
     assert len(candidates) == 1
     candidate = candidates[0]
 
-    confirmed = facts.confirm(candidate.id)
+    confirmed = await facts.confirm(candidate.id)
 
     result = store.get_fact(candidate.id)
 
@@ -96,7 +106,13 @@ async def test_confirm_updates_pending_candidate(store: SqliteStore):
 
 async def test_extract_returns_candidate(store: SqliteStore):
     facts = Facts(
-        store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
+        store,
+        stub_extractor("c", "world"),
+        "model",
+        "prompt_id",
+        "prompt_version",
+        stub_embedder,
+        "test-embedding",
     )
 
     candidates = await facts.extract(DOCUMENT_ID, 2)
@@ -131,6 +147,8 @@ async def test_extract_returns_mulitip_candidates(store: SqliteStore):
         "model",
         "prompt_id",
         "prompt_version",
+        stub_embedder,
+        "test-embedding",
     )
 
     candidates = await facts.extract("multi-doc", 1)
@@ -158,7 +176,7 @@ async def test_extract_returns_mulitip_candidates(store: SqliteStore):
         assert candidate.document_id == "multi-doc"
         assert candidate.source_sequence == 1
 
-    _ = facts.confirm(first.id)
+    _ = await facts.confirm(first.id)
 
     confirmed_first = store.get_fact(first.id)
     pending_second = store.get_fact(second.id)
@@ -171,7 +189,13 @@ async def test_extract_returns_mulitip_candidates(store: SqliteStore):
 
 async def test_extract_rejects_quote_not_in_span(store: SqliteStore):
     facts = Facts(
-        store, stub_extractor("c", "nothing"), "model", "prompt_id", "prompt_version"
+        store,
+        stub_extractor("c", "nothing"),
+        "model",
+        "prompt_id",
+        "prompt_version",
+        stub_embedder,
+        "test-embedding",
     )
 
     with pytest.raises(EvidenceNotInSourceSpan):
@@ -180,7 +204,13 @@ async def test_extract_rejects_quote_not_in_span(store: SqliteStore):
 
 async def test_extract_rejects_unknown_document(store: SqliteStore):
     facts = Facts(
-        store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
+        store,
+        stub_extractor("c", "world"),
+        "model",
+        "prompt_id",
+        "prompt_version",
+        stub_embedder,
+        "test-embedding",
     )
 
     with pytest.raises(SourceSpanNotFound):
@@ -189,7 +219,13 @@ async def test_extract_rejects_unknown_document(store: SqliteStore):
 
 async def test_extract_rejects_unknown_sequence(store: SqliteStore):
     facts = Facts(
-        store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
+        store,
+        stub_extractor("c", "world"),
+        "model",
+        "prompt_id",
+        "prompt_version",
+        stub_embedder,
+        "test-embedding",
     )
 
     with pytest.raises(SourceSpanNotFound):
@@ -198,7 +234,13 @@ async def test_extract_rejects_unknown_sequence(store: SqliteStore):
 
 async def test_extract_modal_fact_run_error_not_in_source_span(store: SqliteStore):
     facts = Facts(
-        store, stub_extractor("c", "nothing"), "model", "prompt_id", "prompt_version"
+        store,
+        stub_extractor("c", "nothing"),
+        "model",
+        "prompt_id",
+        "prompt_version",
+        stub_embedder,
+        "test-embedding",
     )
 
     with pytest.raises(EvidenceNotInSourceSpan):
@@ -216,7 +258,15 @@ async def test_extract_modal_fact_run_error_not_in_source_span(store: SqliteStor
 async def test_extract_modal_fact_run_error_runtime_error(
     store: SqliteStore,
 ):
-    facts = Facts(store, failing_extractor, "model", "prompt_id", "prompt_version")
+    facts = Facts(
+        store,
+        failing_extractor,
+        "model",
+        "prompt_id",
+        "prompt_version",
+        stub_embedder,
+        "test-embedding",
+    )
 
     with pytest.raises(RuntimeError):
         _ = await facts.extract(DOCUMENT_ID, 2)
@@ -232,7 +282,13 @@ async def test_extract_modal_fact_run_error_runtime_error(
 
 async def test_extract_modal_fact_completed(store: SqliteStore):
     facts = Facts(
-        store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
+        store,
+        stub_extractor("c", "world"),
+        "model",
+        "prompt_id",
+        "prompt_version",
+        stub_embedder,
+        "test-embedding",
     )
 
     candidates = await facts.extract(DOCUMENT_ID, 2)
@@ -270,7 +326,13 @@ async def test_is_using_extract_modal_fact(store: SqliteStore):
     store.save_document_with_spans(document, [saved_source_span])
 
     facts = Facts(
-        store, stub_extractor("c", "saved text"), "model", "prompt_id", "prompt_version"
+        store,
+        stub_extractor("c", "saved text"),
+        "model",
+        "prompt_id",
+        "prompt_version",
+        stub_embedder,
+        "test-embedding",
     )
 
     candidates = await facts.extract(document.document_id, 1)
@@ -305,7 +367,13 @@ async def test_extract_output_parsed_none():
 
 async def test_extract_saves_pending_candidate(store: SqliteStore):
     facts = Facts(
-        store, stub_extractor("c", "world"), "model", "prompt_id", "prompt_version"
+        store,
+        stub_extractor("c", "world"),
+        "model",
+        "prompt_id",
+        "prompt_version",
+        stub_embedder,
+        "test-embedding",
     )
 
     candidates = await facts.extract(DOCUMENT_ID, 2)
@@ -340,13 +408,15 @@ async def test_edit_returns_confirmed_fact_to_pending(store: SqliteStore):
         "model",
         "prompt_id",
         "prompt_version",
+        stub_embedder,
+        "test-embedding",
     )
 
     candidates = await facts.extract(DOCUMENT_ID, 1)
     assert len(candidates) == 1
     candidate = candidates[0]
 
-    _ = facts.confirm(candidate.id)
+    _ = await facts.confirm(candidate.id)
     _ = facts.edit(candidate.id, "edited claim")
     edited_candidate = store.get_fact(candidate.id)
 
@@ -371,13 +441,15 @@ async def test_reject_preserves_fact(store: SqliteStore):
         "model",
         "prompt_id",
         "prompt_version",
+        stub_embedder,
+        "test-embedding",
     )
 
     candidates = await facts.extract(DOCUMENT_ID, 1)
     assert len(candidates) == 1
     candidate = candidates[0]
 
-    _ = facts.confirm(candidate.id)
+    _ = await facts.confirm(candidate.id)
     result = facts.reject(candidate.id)
     rejected_candidate = store.get_fact(candidate.id)
 
@@ -394,3 +466,22 @@ async def test_reject_preserves_fact(store: SqliteStore):
     assert rejected_candidate.source_sequence == candidate.source_sequence
 
     assert len(store.get_facts(DOCUMENT_ID)) == 1
+
+
+async def test_confirm_writes_embedding_and_run(store: SqliteStore):
+    facts = Facts(
+        store,
+        stub_extractor("c", "hello"),
+        "model",
+        "p",
+        "1",
+        stub_embedder,
+        "test-embedding",
+    )
+    candidate = (await facts.extract(DOCUMENT_ID, 1))[0]
+
+    _ = await facts.confirm(candidate.id)
+
+    assert store.get_fact_embeddings("test-embedding") == [(candidate.id, [1.0, 0.0])]
+    runs = store.get_embedding_runs("fact", candidate.id)
+    assert len(runs) == 1 and runs[0].status == "completed"
