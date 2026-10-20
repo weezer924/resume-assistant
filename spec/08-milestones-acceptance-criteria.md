@@ -13,8 +13,8 @@ Review actual progress every two weeks and revise the forecast or scope.
 | 1 | Structured extraction and Run record | Complete | Preserve completed scope |
 | 2 | Document import and persisted provenance | Complete | Preserve completed scope |
 | 3 | Fact review and initial Job schema | Closed; incomplete work carried forward | JD workflow and confirmed-only reads moved to Week 4 |
-| 4 | Job analysis and confirmed-only reads | Next | JD persistence/extraction/UI and eligibility query |
-| 5 | One retrieval baseline | Planned | Retrieval, evidence selection, fixed-case assessment |
+| 4 | Job analysis and confirmed-only reads | Closed 2026-10-20; incomplete work carried forward | Job extraction Runs moved to Week 5; JD UI in progress |
+| 5 | One retrieval baseline | Next | Retrieval, evidence selection, fixed-case assessment, Job and embedding Runs |
 | 6 | Evidence-backed suggestions | Planned | Context, generation, reference checks, gap display |
 | 7 | Fixed-case evaluation and prompt comparison | Planned | Reproducible cases, comparison, report |
 | 8 | Portfolio release | Planned | Setup verification, README, demo |
@@ -58,31 +58,32 @@ Completed:
 Carried forward: the JD workflow and confirmed-only reads below were not
 completed in Week 3. Migration practice remains deferred beyond the first release.
 
-### Week 4 — Job analysis and confirmed-only reads · next
+### Week 4 — Job analysis and confirmed-only reads · closed
 
 - [x] Save pasted JD text and read it back by stable Job ID.
 - [x] Extract and persist requirements with stable IDs and validated source quotes.
 - [x] Classify explicitly labeled required/preferred requirements; preserve only explicit levels. Unlabeled requirements are deferred.
-- [ ] Record successful and failed extraction Runs against the actual Job input.
-- [ ] Connect pasted JD input and requirement inspection to the HTML UI.
-- [ ] Verify usable-fact reads exclude pending and rejected records.
+- [ ] Record successful and failed extraction Runs against the actual Job input. Carried forward to Week 5.
+- [ ] Connect pasted JD input and requirement inspection to the HTML UI. In progress (assistant-owned frontend slice); `GET /jobs/{id}/requirements` is available.
+- [x] Verify usable-fact reads exclude pending and rejected records (`SqliteStore.get_confirmed_facts`, covered by a behaviour test).
 
-Done when a synthetic JD can be pasted, saved, extracted, and inspected with
-visible errors, and confirmed-only reads are verified. Migration practice is
-deferred, not completed. Next slice: save and retrieve a Job before adding LLM
-extraction.
+Closed 2026-10-20 with the JD UI pending and Job Runs carried into Week 5, so the
+retrieval slice is not blocked. Confirmed-only reads are verified. Migration
+practice is deferred, not completed.
 
-### Week 5 — One retrieval baseline (RAG) · planned
+### Week 5 — One retrieval baseline (RAG) · next
 
 - [ ] Query confirmed Facts for a JobRequirement using one retrieval method.
 - [ ] Return bounded Top-K results with stable evidence references and excerpts.
 - [ ] Record candidate IDs, scores, ranks, and selected evidence.
 - [ ] Recheck current confirmation state in SQLite when consuming results.
 - [ ] Inspect fixed relevant-evidence, missing-skill, and hard-negative cases.
+- [ ] Record successful and failed Runs for Job extraction and embedding calls (carried from Week 4).
 
 Done when retrieval results are traceable to source text and the fixed cases
 have an inspectable assessment. Report Recall@K for labeled answerable cases;
-inspect no-evidence cases separately. Choose the first method at slice start.
+inspect no-evidence cases separately. The method is OpenAI embeddings in SQLite
+([ADR-0002](adr/ADR-0002-embeddings-as-first-retrieval-baseline.md)).
 Hybrid comparison and reranking are not required.
 
 ### Week 6 — Evidence-backed suggestions · planned
@@ -127,7 +128,7 @@ Record these at each review to make pace visible:
 
 | Period | Actual hours | Completed checkboxes / demonstrated behavior | Carried-over work and reason | Next two-week target |
 | --- | --- | --- | --- | --- |
-| First review after scope reset | Not yet recorded | — | — | Finish Week 4 JD workflow and Week 5 retrieval; reassess Weeks 6–8 |
+| 2026-09-21 → 2026-10-20 | Not recorded by owner; roughly one working week, then a three-week pause for interviews (no commits after 2026-09-26) | Week 4: Job save/read, requirement extraction with quote and level validation, explicit-label-only classification, confirmed-only reads, requirements read API. ADR-0002 chose the retrieval method | Job extraction Runs → Week 5 (written together with embedding Runs). JD UI → in progress as an assistant frontend slice | Week 5 retrieval baseline and fixed cases. Release moves to late November 2026 at the earliest; reforecast after Week 5 |
 
 At the end of each week, record what actually shipped. Move unfinished items
 explicitly into the next plan and update downstream targets; preserve the
