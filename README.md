@@ -1,8 +1,8 @@
 # Evidence-Backed Resume Assistant
 
-A local-first Python application for turning career documents into reviewable
-facts, with each statement linked to its original source. The goal is to tailor
-resumes to job descriptions without inventing experience.
+A local-first Python application for turning career documents into reviewable facts, with each statement linked to its original source.
+
+For one job description, the app proposes resume wording where every sentence cites a confirmed fact, and names the requirements it has no evidence for instead of filling them in. The starting point is always the JD's requirements.
 
 ## Demo
 
@@ -30,36 +30,65 @@ https://github.com/user-attachments/assets/2776ecdb-5d39-4265-a2b2-c92cda8183c0
 - Confirm, edit, or reject each fact in a browser UI. Edits return the same fact
   to pending while preserving its original claim, source quote, and Run link.
 - Reload the current browser tab to recover persisted sources and review states.
-
-Job-description saving is available through `POST /jobs`. Requirement extraction
-and quote checking exist at the service layer, but requirement persistence and
-the connected API/UI workflow are not yet complete.
+- Paste a job description, extract requirements that carry an explicit
+  required/preferred label, and inspect them in the same UI. Each requirement
+  quotes the JD verbatim; unlabeled requirements are omitted rather than guessed.
+- Read only confirmed facts for downstream use; pending and rejected facts
+  never reach retrieval.
 
 ## Design
 
 ```text
-Markdown → saved source sections → model proposes claims + quotes
-                                      ↓
-                              application checks quotes
-                                      ↓
-                            pending facts → human review
+          tests/fixtures/sample_resume.md          job-description text (tests/fixtures/sample_jd.md)
+                        │                                       │
+            split into source sections              LLM extracts requirements
+                        │                            (verbatim quote, required /
+            LLM proposes claims + quotes             preferred label only)
+                        │                                       │
+            app checks each quote exists                app checks each quote
+                        │                                       │
+            pending facts → human review                 requirements
+            confirm / edit / reject                             │
+                        │                                       │
+                 confirmed facts  ◄──── embed & rank ───────────┘
+                        │        (one vector per confirmed fact,
+                        │         cosine Top-5 per requirement,
+                        │         confirmation re-checked on read)
+                        ▼
+            retrieval candidates (ids, scores, ranks)
+                        │
+                        ▼
+            LLM writes Japanese suggestions; every factual sentence
+            cites a fact id; requirements with no evidence are listed
+            as gaps, not filled in
+                        │
+                        ▼
+            app validates every cited id exists and is still confirmed
+                        │
+                        ▼
+            fixed-case evaluation: Recall@K, hard negatives,
+            prompt A/B with inputs and model held fixed
 ```
 
-The model proposes content; Python owns IDs, provenance, validation, and review
-state. An exact quote match establishes that the excerpt exists, not that it
-supports the entire claim—human review remains necessary.
+| Stage | Status |
+| --- | --- |
+| Resume import, fact extraction, human review | Done (Weeks 1–3) |
+| JD import, requirement extraction, confirmed-only reads | Done (Week 4) |
+| Embedding retrieval, Top-K, fixed cases, Recall@K | **In progress (Week 5)** — tables, Run records and fixed cases exist; embedding, ranking and the evaluation run are being written |
+| Evidence-backed suggestions with citation checks and gap display | Not started (Week 6) |
+| Fixed-case evaluation report and prompt comparison | Not started (Week 7) |
+| Setup verification, demo, release notes | Not started (Week 8) |
 
-The stack is **Python 3.12+, FastAPI, Pydantic, SQLite, and the OpenAI SDK**, with
-plain HTML/CSS/JavaScript served by FastAPI. Thin routes call services and a
-SQLite store; tests substitute temporary databases and stub model calls.
+The model proposes content; Python owns IDs, provenance, validation, and review state. An exact quote match establishes that the excerpt exists, not that it supports the entire claim—human review remains necessary.
+
+The stack is **Python 3.12+, FastAPI, Pydantic, SQLite, and the OpenAI SDK**, with plain HTML/CSS/JavaScript served by FastAPI. Thin routes call services and a SQLite store; tests substitute temporary databases and stub model calls.
 
 The backend is myself-written Python, with AI assistance for review; the frontend is AI-assisted. See the
 [collaboration protocol](spec/08-milestones-acceptance-criteria.md#22-learning-and-collaboration-protocol).
 
 ## Run locally
 
-Prerequisites: Python 3.12+, `uv`, `make`, and an OpenAI API key with access to the
-configured model (`gpt-5-mini` in [app/dependencies.py](app/dependencies.py)).
+Prerequisites: Python 3.12+, `uv`, `make`, and an OpenAI API key with access to the configured model (`gpt-5-mini` in [app/dependencies.py](app/dependencies.py)).
 
 ```sh
 git clone https://github.com/weezer924/resume-assistant.git
@@ -88,12 +117,6 @@ Open [the review UI](http://127.0.0.1:8000/) Reuse the same database path to kee
    **Reject** a candidate you do not want to use.
 5. Reload the same tab to inspect the persisted review state.
 
-Extraction makes a real API call and incurs usage charges. Results can vary.
-Documents and review records live locally, but the selected section is sent to
-OpenAI during extraction; requests use `store=False`. This is not an offline app.
-Use synthetic data for public demos. `.env`, `database/`, and `private/` are
-ignored by Git.
-
 ## Validation and limits
 
 ```sh
@@ -102,18 +125,5 @@ uv run ruff format --check .
 make test                  # pytest; no API key needed
 ```
 
-Tests cover persistence, quote validation, review transitions, and API behavior
-using stub extractors. They do not establish real-model accuracy; a fixed-case
-model evaluation and prompt comparison are planned.
-
-## Roadmap and specifications
-
-Next: finish job analysis and confirmed-only reads, add one retrieval baseline,
-then evidence-backed Japanese suggestions and a fixed-case evaluation. Advanced
-retrieval comparisons and Agent frameworks are deferred.
-
-See [milestones and approved release scope](spec/08-milestones-acceptance-criteria.md),
-[product foundations](spec/01-product-foundations.md),
-[data model](spec/02-data-model.md),
-[pipeline invariants](spec/03-domain-invariants-pipeline.md), and
-[design decisions](spec/adr/).
+Tests cover persistence, quote validation, review transitions, and API behavior using stub extractors and embedders. They do not establish real-model quality; 
+that is measured separately by the fixed cases in `app/evaluation/` (`tests/fixtures/retrieval_cases.json`), which run against the real model and report Recall@K plus hard-negative and no-evidence behaviour.
