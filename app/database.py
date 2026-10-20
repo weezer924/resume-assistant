@@ -1,14 +1,19 @@
+import json
 import sqlite3
 from typing import Literal, cast
 
 from app.schema import (
     Document,
+    EmbeddingRun,
     FactDraft,
     Job,
     JobRequirement,
     ModelFactOutput,
     ModelFactRun,
     ModelJobRequirementOutput,
+    ModelJobRun,
+    RetrievalCandidate,
+    RetrievalCandidateDraft,
     SourceSpan,
 )
 
@@ -81,6 +86,67 @@ class SqliteStore:
                 CREATE TABLE IF NOT EXISTS jobs (
                     id TEXT PRIMARY KEY,
                     source_text TEXT NOT NULL
+                )
+            """)
+
+            _ = connection.execute("""
+                CREATE TABLE IF NOT EXISTS model_job_run (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    job_id TEXT NOT NULL,
+                    model TEXT NOT NULL,
+                    prompt_id TEXT NOT NULL,
+                    prompt_version TEXT NOT NULL,
+                    start_at REAL NOT NULL,
+                    completed_at REAL NOT NULL,
+                    status TEXT NOT NULL,
+                    output TEXT,
+                    error TEXT,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (job_id) REFERENCES jobs(id)
+                )
+            """)
+
+            # confirm 一条 fact ──→ 调 API ──→ embedding_run(fact)  +  fact_embeddings 写一行
+            # 检索一条 requirement ─→ 调 API ──→ embedding_run(requirement)，向量只在内存里
+            #                                       └─→ 和 fact_embeddings 全表算距离 → Top-K
+            _ = connection.execute("""
+                CREATE TABLE IF NOT EXISTS embedding_run (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    input_kind TEXT NOT NULL CHECK (input_kind IN ('fact', 'requirement')),
+                    input_ref INTEGER NOT NULL,
+                    model TEXT NOT NULL,
+                    start_at REAL NOT NULL,
+                    completed_at REAL NOT NULL,
+                    status TEXT NOT NULL,
+                    error TEXT,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Rebuildable projection of confirmed facts (spec 10.1); one row per fact.
+            _ = connection.execute("""
+                CREATE TABLE IF NOT EXISTS fact_embeddings (
+                    fact_id INTEGER PRIMARY KEY,
+                    model TEXT NOT NULL,
+                    vector TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (fact_id) REFERENCES facts(id)
+                )
+            """)
+
+            # for 评测,
+            _ = connection.execute("""
+                CREATE TABLE IF NOT EXISTS retrieval_candidates (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    job_requirement_id INTEGER NOT NULL,
+                    fact_id INTEGER NOT NULL,
+                    method TEXT NOT NULL,
+                    score REAL NOT NULL,
+                    rank INTEGER NOT NULL,
+                    selected INTEGER NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (job_requirement_id) REFERENCES job_requirements(id),
+                    FOREIGN KEY (fact_id) REFERENCES facts(id)
                 )
             """)
 
@@ -671,6 +737,228 @@ class SqliteStore:
                     category=row[4],
                     required_or_preferred=row[5],
                     years_or_level=row[6],
+                )
+                for row in rows
+            ]
+
+    # --- Week 5 plumbing: Runs, embedding projection, retrieval candidates ---
+
+    def save_model_job_run(self, model_job_run: ModelJobRun) -> int:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO model_job_run (
+                    job_id, model, prompt_id, prompt_version,
+                    start_at, completed_at, status, output, error
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    model_job_run.job_id,
+                    model_job_run.model,
+                    model_job_run.prompt_id,
+                    model_job_run.prompt_version,
+                    model_job_run.start_at,
+                    model_job_run.completed_at,
+                    model_job_run.status,
+                    model_job_run.output,
+                    model_job_run.error,
+                ),
+            )
+            if cursor.lastrowid is None:
+                raise RuntimeError("Failed to insert model job run")
+            return cursor.lastrowid
+
+    def get_model_job_runs(self, job_id: str) -> list[ModelJobRun]:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                SELECT job_id, model, prompt_id, prompt_version, start_at, completed_at, status, output, error
+                FROM model_job_run
+                WHERE job_id = ?
+                ORDER BY id
+                """,
+                (job_id,),
+            )
+            rows = cast(
+                list[
+                    tuple[str, str, str, str, float, float, str, str | None, str | None]
+                ],
+                cursor.fetchall(),
+            )
+            return [
+                ModelJobRun(
+                    job_id=row[0],
+                    model=row[1],
+                    prompt_id=row[2],
+                    prompt_version=row[3],
+                    start_at=row[4],
+                    completed_at=row[5],
+                    status=row[6],
+                    output=row[7],
+                    error=row[8],
+                )
+                for row in rows
+            ]
+
+    def save_embedding_run(self, embedding_run: EmbeddingRun) -> int:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO embedding_run (
+                    input_kind, input_ref, model, start_at, completed_at, status, error
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    embedding_run.input_kind,
+                    embedding_run.input_ref,
+                    embedding_run.model,
+                    embedding_run.start_at,
+                    embedding_run.completed_at,
+                    embedding_run.status,
+                    embedding_run.error,
+                ),
+            )
+            if cursor.lastrowid is None:
+                raise RuntimeError("Failed to insert embedding run")
+            return cursor.lastrowid
+
+    def get_embedding_runs(
+        self, input_kind: Literal["fact", "requirement"], input_ref: int
+    ) -> list[EmbeddingRun]:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                SELECT input_kind, input_ref, model, start_at, completed_at, status, error
+                FROM embedding_run
+                WHERE input_kind = ? AND input_ref = ?
+                ORDER BY id
+                """,
+                (input_kind, input_ref),
+            )
+            rows = cast(
+                list[
+                    tuple[
+                        Literal["fact", "requirement"],
+                        int,
+                        str,
+                        float,
+                        float,
+                        str,
+                        str | None,
+                    ]
+                ],
+                cursor.fetchall(),
+            )
+            return [
+                EmbeddingRun(
+                    input_kind=row[0],
+                    input_ref=row[1],
+                    model=row[2],
+                    start_at=row[3],
+                    completed_at=row[4],
+                    status=row[5],
+                    error=row[6],
+                )
+                for row in rows
+            ]
+
+    def upsert_fact_embedding(
+        self, fact_id: int, model: str, vector: list[float]
+    ) -> None:
+        with sqlite3.connect(self.db_path) as connection:
+            _ = connection.execute(
+                """
+                INSERT INTO fact_embeddings (fact_id, model, vector)
+                VALUES (?, ?, ?)
+                ON CONFLICT(fact_id) DO UPDATE SET
+                    model = excluded.model,
+                    vector = excluded.vector,
+                    created_at = CURRENT_TIMESTAMP
+                """,
+                (fact_id, model, json.dumps(vector)),
+            )
+
+    def delete_fact_embedding(self, fact_id: int) -> None:
+        with sqlite3.connect(self.db_path) as connection:
+            _ = connection.execute(
+                "DELETE FROM fact_embeddings WHERE fact_id = ?", (fact_id,)
+            )
+
+    def get_fact_embeddings(self, model: str) -> list[tuple[int, list[float]]]:
+        """All stored vectors for one model, in fact id order. Callers must still
+        check each fact's current status; this table is a projection, not truth."""
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                SELECT fact_id, vector
+                FROM fact_embeddings
+                WHERE model = ?
+                ORDER BY fact_id
+                """,
+                (model,),
+            )
+            rows = cast(list[tuple[int, str]], cursor.fetchall())
+            return [
+                (fact_id, cast(list[float], json.loads(vector)))
+                for fact_id, vector in rows
+            ]
+
+    def save_retrieval_candidates(
+        self, candidates: list[RetrievalCandidateDraft]
+    ) -> list[int]:
+        with sqlite3.connect(self.db_path) as connection:
+            ids: list[int] = []
+            for candidate in candidates:
+                cursor = connection.execute(
+                    """
+                    INSERT INTO retrieval_candidates (
+                        job_requirement_id, fact_id, method, score, rank, selected
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        candidate.job_requirement_id,
+                        candidate.fact_id,
+                        candidate.method,
+                        candidate.score,
+                        candidate.rank,
+                        int(candidate.selected),
+                    ),
+                )
+                if cursor.lastrowid is None:
+                    raise RuntimeError("Failed to insert retrieval candidate")
+                ids.append(cursor.lastrowid)
+            return ids
+
+    def get_retrieval_candidates(
+        self, job_requirement_id: int
+    ) -> list[RetrievalCandidate]:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                SELECT id, job_requirement_id, fact_id, method, score, rank, selected, created_at
+                FROM retrieval_candidates
+                WHERE job_requirement_id = ?
+                ORDER BY id
+                """,
+                (job_requirement_id,),
+            )
+            rows = cast(
+                list[tuple[int, int, int, str, float, int, int, str]],
+                cursor.fetchall(),
+            )
+            return [
+                RetrievalCandidate(
+                    id=row[0],
+                    job_requirement_id=row[1],
+                    fact_id=row[2],
+                    method=row[3],
+                    score=row[4],
+                    rank=row[5],
+                    selected=bool(row[6]),
+                    created_at=row[7],
                 )
                 for row in rows
             ]

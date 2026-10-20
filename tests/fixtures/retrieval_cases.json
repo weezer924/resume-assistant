@@ -1,0 +1,156 @@
+{
+  "description": "Fixed retrieval cases for Week 5. Facts are seeded directly as confirmed (bypassing LLM extraction) so Recall@K is reproducible. Quotes are copied verbatim from sample_resume.md. Synthetic data only.",
+  "document": "sample_resume.md",
+  "facts": {
+    "python_django_5y": {
+      "claim": "PythonとDjangoでWebアプリケーションを5年設計・実装した",
+      "evidence_quote": "Python と Django による Web アプリケーションの設計・実装（5年）",
+      "source_sequence": 4
+    },
+    "java_spring_5y": {
+      "claim": "受託開発会社でJava / Springを使い2014年から2019年まで5年働いた",
+      "evidence_quote": "2014年4月 〜 2019年3月：株式会社サンプルシステムズ（受託開発、Java / Spring）",
+      "source_sequence": 3
+    },
+    "aws_ops": {
+      "claim": "AWS（ECS、RDS、SQS）でサービス運用とコスト最適化を行った",
+      "evidence_quote": "AWS（ECS、RDS、SQS）を用いたサービス運用とコスト最適化",
+      "source_sequence": 4
+    },
+    "team_lead_6": {
+      "claim": "2022年から6名のバックエンドチームのリードを兼任している",
+      "evidence_quote": "2022年から6名のバックエンドチームのリードを兼任",
+      "source_sequence": 3
+    },
+    "hiring_1on1": {
+      "claim": "チームリードとして採用面接、1on1、技術方針の策定を担当した",
+      "evidence_quote": "2022年よりチームリードとして採用面接、1on1、技術方針の策定を担当",
+      "source_sequence": 5
+    },
+    "php_to_django": {
+      "claim": "注文管理システムをPHPからDjangoへ移行し障害件数を月平均12件から2件に削減した",
+      "evidence_quote": "注文管理システムを PHP から Django へ移行し、障害件数を月平均12件から2件に削減",
+      "source_sequence": 5
+    },
+    "payment_queue": {
+      "claim": "決済処理のキュー化でセール時のタイムアウト発生率を4.1%から0.3%に改善した",
+      "evidence_quote": "決済処理のキュー化により、セール時のタイムアウト発生率を4.1%から0.3%に改善",
+      "source_sequence": 5
+    },
+    "perf_3m_pv": {
+      "claim": "月間300万PVのECサイトでパフォーマンス改善を行った",
+      "evidence_quote": "月間300万PVのECサイトにおけるパフォーマンス改善",
+      "source_sequence": 4
+    },
+    "onboarding": {
+      "claim": "新人向けオンボーディング資料を整備し立ち上がり期間を3か月から6週間に短縮した",
+      "evidence_quote": "新人向けオンボーディング資料を整備し、立ち上がり期間を3か月から6週間に短縮",
+      "source_sequence": 5
+    },
+    "code_review": {
+      "claim": "コードレビューと設計レビューでチームの品質向上に取り組んだ",
+      "evidence_quote": "コードレビューと設計レビューを通じたチームの品質向上",
+      "source_sequence": 4
+    }
+  },
+  "cases": [
+    {
+      "id": "python_years",
+      "kind": "answerable",
+      "requirement": {
+        "requirement_text": "Python での Web アプリケーション開発経験 3 年以上（必須）",
+        "normalized_requirement": "Python Webアプリケーション開発 3年以上",
+        "category": "technical_skill",
+        "required_or_preferred": "required",
+        "years_or_level": "3 年以上"
+      },
+      "relevant": ["python_django_5y"],
+      "hard_negatives": ["java_spring_5y"],
+      "note": "Same skill-plus-years shape, wrong language. Baseline must rank Python above Java."
+    },
+    {
+      "id": "aws",
+      "kind": "answerable",
+      "requirement": {
+        "requirement_text": "AWS を用いたサービス運用経験（必須）",
+        "normalized_requirement": "AWS サービス運用経験",
+        "category": "technical_skill",
+        "required_or_preferred": "required",
+        "years_or_level": null
+      },
+      "relevant": ["aws_ops"],
+      "hard_negatives": ["payment_queue"],
+      "note": "Infrastructure wording overlap (queue, timeouts) without AWS."
+    },
+    {
+      "id": "team_lead",
+      "kind": "answerable",
+      "requirement": {
+        "requirement_text": "エンジニアチームのリード経験（歓迎）",
+        "normalized_requirement": "エンジニアチーム リード経験",
+        "category": "leadership",
+        "required_or_preferred": "preferred",
+        "years_or_level": null
+      },
+      "relevant": ["team_lead_6", "hiring_1on1"],
+      "hard_negatives": ["onboarding"],
+      "note": "Mentoring-adjacent but not leading a team."
+    },
+    {
+      "id": "performance",
+      "kind": "answerable",
+      "requirement": {
+        "requirement_text": "大規模トラフィックでのパフォーマンス改善経験（歓迎）",
+        "normalized_requirement": "大規模トラフィック パフォーマンス改善",
+        "category": "technical_skill",
+        "required_or_preferred": "preferred",
+        "years_or_level": null
+      },
+      "relevant": ["perf_3m_pv", "payment_queue"],
+      "hard_negatives": ["php_to_django"],
+      "note": "Migration with reliability numbers, not throughput."
+    },
+    {
+      "id": "kubernetes",
+      "kind": "no_evidence",
+      "requirement": {
+        "requirement_text": "Kubernetes によるコンテナオーケストレーション経験（必須）",
+        "normalized_requirement": "Kubernetes コンテナオーケストレーション",
+        "category": "technical_skill",
+        "required_or_preferred": "required",
+        "years_or_level": null
+      },
+      "relevant": [],
+      "hard_negatives": ["aws_ops"],
+      "note": "No evidence exists. Inspect what the top result looks like and whether the score is distinguishable."
+    },
+    {
+      "id": "golang",
+      "kind": "no_evidence",
+      "requirement": {
+        "requirement_text": "Go 言語での開発経験（歓迎）",
+        "normalized_requirement": "Go 言語 開発経験",
+        "category": "technical_skill",
+        "required_or_preferred": "preferred",
+        "years_or_level": null
+      },
+      "relevant": [],
+      "hard_negatives": ["python_django_5y", "java_spring_5y"],
+      "note": "Language-experience shape with no matching language."
+    },
+    {
+      "id": "mixed_script",
+      "kind": "answerable",
+      "requirement": {
+        "requirement_text": "RDS や SQS など AWS マネージドサービスの運用（必須）",
+        "normalized_requirement": "AWS managed services (RDS, SQS) operation",
+        "category": "technical_skill",
+        "required_or_preferred": "required",
+        "years_or_level": null
+      },
+      "relevant": ["aws_ops"],
+      "hard_negatives": [],
+      "note": "English service names inside a Japanese sentence; normalized text is English. Checks mixed-script behaviour (spec 10.4)."
+    }
+  ]
+}

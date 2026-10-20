@@ -93,3 +93,42 @@ class ExtractionConfig(BaseModel):
     model: str
     prompt_id: str
     prompt_version: str
+
+
+class ModelJobRun(BaseModel):
+    job_id: str
+    model: str
+    prompt_id: str
+    prompt_version: str
+    start_at: float
+    completed_at: float
+    status: str
+    output: str | None
+    error: str | None
+
+
+class EmbeddingRun(BaseModel):
+    """One embedding API call. input_kind/input_ref identify what was embedded:
+    ("fact", fact id) for index rows, ("requirement", requirement id) for queries."""
+
+    input_kind: Literal["fact", "requirement"]
+    input_ref: int
+    model: str
+    start_at: float
+    completed_at: float
+    status: str
+    error: str | None
+
+
+class RetrievalCandidateDraft(BaseModel):
+    job_requirement_id: int
+    fact_id: int
+    method: str
+    score: float
+    rank: int
+    selected: bool
+
+
+class RetrievalCandidate(RetrievalCandidateDraft):
+    id: int
+    created_at: str
