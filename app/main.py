@@ -11,6 +11,11 @@ from app.services.facts import (
     InvalidFactTransition,
     SourceSpanNotFound,
 )
+from app.services.jobs import (
+    JobNotFound,
+    RequirementLevelNotInJob,
+    RequirementNotInJob,
+)
 
 app = FastAPI()
 
@@ -50,3 +55,26 @@ async def invalid_fact_transition_handler(
     _request: Request, exc: InvalidFactTransition
 ):
     return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
+@app.exception_handler(JobNotFound)
+async def job_not_found_handler(_request: Request, _exc: JobNotFound):
+    return JSONResponse(status_code=404, content={"detail": "Job not found"})
+
+
+@app.exception_handler(RequirementNotInJob)
+async def requirement_not_in_job_handler(_request: Request, _exc: RequirementNotInJob):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Requirement quote not found in job description"},
+    )
+
+
+@app.exception_handler(RequirementLevelNotInJob)
+async def requirement_level_not_in_job_handler(
+    _request: Request, _exc: RequirementLevelNotInJob
+):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Years or level not found in requirement quote"},
+    )
