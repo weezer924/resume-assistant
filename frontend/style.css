@@ -141,7 +141,7 @@ button:hover:not(:disabled) {
     min-height: 24px
 }
 
-#error {
+.error {
     background: #fff1f0;
     border-left: 4px solid #b63b36;
     padding: 14px;
@@ -401,3 +401,64 @@ footer {
     overflow-wrap: anywhere
 }
 .badge.rejected{background:#f6e5e4;color:#8c3530}.actions{flex-wrap:wrap}
+
+#job-panel {
+    margin-top: 40px
+}
+
+.job-pane textarea {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    margin-top: 8px;
+    resize: vertical;
+    font-size: 14px;
+    line-height: 1.8;
+    background: #fff
+}
+
+.job-pane .actions {
+    margin-top: 12px
+}
+
+.job-pane .hint {
+    margin: 10px 0 0
+}
+
+.requirements {
+    list-style: none;
+    margin: 0;
+    padding: 0
+}
+
+.requirement {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--line)
+}
+
+.requirement:first-child {
+    padding-top: 0
+}
+
+.requirement:last-child {
+    border-bottom: 0
+}
+
+.normalized {
+    font-size: 17px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+    margin: 8px 0 0
+}
+
+.badge.required {
+    background: #dde9f3;
+    color: #1f4a73
+}
+
+.badge.preferred {
+    background: #e8ecef;
+    color: #4a5b68
+}

@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Resume Assistant · Fact review</title>
+  <title>Resume Assistant · Review</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/static/style.css">
   <script src="/static/app.js" defer></script>
@@ -18,7 +18,7 @@
       <span id="selected-file">or drop a file here</span>
       <span class="hint">Extraction sends the selected section to OpenAI.</span>
     </form>
-    <div id="error" role="alert" hidden></div>
+    <div id="error" class="error" role="alert" hidden></div>
     <section id="workspace" hidden>
       <div class="document-heading">
         <h2 id="filename"></h2>
@@ -42,7 +42,45 @@
         </section>
       </div>
     </section>
+    <section id="job-panel" aria-labelledby="job-title">
+      <div class="document-heading">
+        <h2 id="job-title">Job description</h2>
+        <details id="job-id-details" hidden>
+          <summary>Job ID</summary><span id="job-id"></span>
+        </details>
+      </div>
+      <div id="job-error" class="error" role="alert" hidden></div>
+      <div class="columns">
+        <form id="job-form" class="source-pane job-pane" aria-labelledby="job-source-title">
+          <h2 id="job-source-title">Posting text</h2>
+          <label for="job-text">Paste a job description (synthetic data only)</label>
+          <textarea id="job-text" rows="14" placeholder="【必須】Python と Django を用いた開発経験（5年以上）&#10;【歓迎】Kubernetes の運用経験"></textarea>
+          <p id="job-status" class="hint">Not saved yet.</p>
+          <div class="actions">
+            <button id="save-job" type="submit">Save JD</button>
+            <button id="extract-requirements" type="button" disabled>Extract requirements</button>
+          </div>
+          <p class="hint">Saving creates a new job ID. Extraction sends the saved text to OpenAI.</p>
+        </form>
+        <section class="review-pane" aria-labelledby="requirements-title">
+          <div class="review-heading">
+            <h2 id="requirements-title">Requirements</h2><span id="requirement-count"></span>
+          </div>
+          <p id="requirements-empty">No requirements yet. Save a job description, then extract.</p>
+          <ul id="requirements" class="requirements"></ul>
+        </section>
+      </div>
+    </section>
   </main>
+  <template id="requirement-template">
+    <li class="requirement">
+      <div class="fact-heading"><strong class="fact-id"></strong><span class="badge"></span></div>
+      <p class="normalized"></p>
+      <h3>Requirement quote</h3>
+      <blockquote class="quote"></blockquote>
+      <dl class="metadata"></dl>
+    </li>
+  </template>
   <template id="fact-template">
     <article class="fact">
       <div class="fact-heading"><strong class="fact-id"></strong><span class="badge"></span></div>

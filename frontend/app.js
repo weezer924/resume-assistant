@@ -3,9 +3,13 @@ const $ = (selector, root = document) => root.querySelector(selector);
 let review = null;
 let busy = false;
 const storageKey = 'resume-assistant-document';
+const jobStorageKey = 'resume-assistant-job';
+let job = null;
+let requirements = [];
 
-function remember(id) { try { sessionStorage.setItem(storageKey, id); } catch { /* UI works without storage. */ } }
-function remembered() { try { return sessionStorage.getItem(storageKey); } catch { return null; } }
+function remember(id, key = storageKey) { try { sessionStorage.setItem(key, id); } catch { /* UI works without storage. */ } }
+function remembered(key = storageKey) { try { return sessionStorage.getItem(key); } catch { return null; } }
+function forget(key) { try { sessionStorage.removeItem(key); } catch { /* UI works without storage. */ } }
 
 async function api(path, options = {}) {
   const response = await fetch(path, options);
@@ -22,16 +26,24 @@ function json(method, body) {
   return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
 }
 
-async function action(operation) {
+function showError(message, box = $('#error')) {
+  box.textContent = message || 'Connection failed. Check that the server is running.';
+  box.hidden = false;
+}
+
+async function action(operation, errorBox = $('#error')) {
   if (busy) return;
   busy = true;
   const controls = [...document.querySelectorAll('button, input, select, textarea')].map(el => [el, el.disabled]);
   controls.forEach(([el]) => { el.disabled = true; });
-  $('#error').hidden = true;
+  document.querySelectorAll('.error').forEach(box => { box.hidden = true; });
   try { await operation(); }
-  catch (error) { $('#error').textContent = error.message || 'Connection failed. Check that the server is running.'; $('#error').hidden = false; }
-  finally { busy = false; controls.forEach(([el, disabled]) => { if (el.isConnected) el.disabled = disabled; }); }
+  catch (error) { showError(error.message, errorBox); }
+  finally { busy = false; controls.forEach(([el, disabled]) => { if (el.isConnected) el.disabled = disabled; }); syncJobControls(); }
 }
+
+// The snapshot above restores the pre-request state, so state that changed during the request is re-derived here.
+function syncJobControls() { $('#extract-requirements').disabled = !job; }
 
 function selectedSpan() {
   return review?.spans.find(span => span.sequence === Number($('#span-select').value));
@@ -165,5 +177,92 @@ $('#extract').onclick = () => {
   });
 };
 
+// Job description: save, extract requirements, re-list after reload.
+function renderRequirements() {
+  $('#requirement-count').textContent = `${requirements.length} ${requirements.length === 1 ? 'requirement' : 'requirements'}`;
+  $('#requirements-empty').hidden = requirements.length > 0;
+  $('#requirements').replaceChildren();
+  for (const requirement of requirements) {
+    const item = $('#requirement-template').content.firstElementChild.cloneNode(true);
+    $('.fact-id', item).textContent = `Requirement #${requirement.id}`;
+    const badge = $('.badge', item);
+    badge.textContent = ({ required: 'Required', preferred: 'Preferred' })[requirement.required_or_preferred] || requirement.required_or_preferred;
+    badge.classList.add(requirement.required_or_preferred === 'required' ? 'required' : 'preferred');
+    $('.normalized', item).textContent = requirement.normalized_requirement;
+    $('.quote', item).textContent = requirement.requirement_text;
+    const fields = [['Category', requirement.category]];
+    if (requirement.years_or_level) fields.push(['Years / level', requirement.years_or_level]);
+    for (const [key, value] of fields) {
+      const dt = document.createElement('dt'); dt.textContent = key;
+      const dd = document.createElement('dd'); dd.textContent = value;
+      $('.metadata', item).append(dt, dd);
+    }
+    $('#requirements').append(item);
+  }
+}
+
+function updateRequirement(requirement) {
+  const index = requirements.findIndex(item => item.id === requirement.id);
+  if (index < 0) requirements.push(requirement); else requirements[index] = requirement;
+}
+
+function showJob(saved) {
+  job = saved;
+  remember(job.id, jobStorageKey);
+  $('#job-text').value = job.source_text;
+  $('#job-id').textContent = job.id;
+  $('#job-id-details').hidden = false;
+  $('#job-status').textContent = `Saved as job ${job.id}.`;
+  syncJobControls();
+}
+
+async function loadJob(id) {
+  let loaded;
+  try { loaded = await api(`/jobs/${encodeURIComponent(id)}`); }
+  catch (error) { forget(jobStorageKey); throw error; }
+  showJob(loaded.job);
+  const listed = await api(`/jobs/${encodeURIComponent(id)}/requirements`);
+  requirements = listed.requirements;
+  renderRequirements();
+}
+
+$('#job-text').oninput = () => {
+  if (job && $('#job-text').value !== job.source_text) $('#job-status').textContent = `Edited since job ${job.id} was saved. Save JD again to create a new job.`;
+  else if (job) $('#job-status').textContent = `Saved as job ${job.id}.`;
+};
+
+$('#job-form').onsubmit = event => {
+  event.preventDefault();
+  const sourceText = $('#job-text').value;
+  if (!sourceText.trim()) { showError('Paste a job description first.', $('#job-error')); return; }
+  action(async () => {
+    const saved = await api('/jobs', json('POST', { source_text: sourceText }));
+    requirements = [];
+    renderRequirements();
+    showJob(saved.job);
+  }, $('#job-error'));
+};
+
+$('#extract-requirements').onclick = () => {
+  if (!job) return;
+  action(async () => {
+    const response = await api(`/jobs/${encodeURIComponent(job.id)}/requirements/extract`, { method: 'POST' });
+    for (const requirement of response.requirements) updateRequirement(requirement);
+    renderRequirements();
+    if (response.requirements.length === 0) {
+      $('#requirements-empty').textContent = 'No requirements found in this job description.';
+      $('#requirements-empty').hidden = false;
+    }
+  }, $('#job-error'));
+};
+
 const lastDocument = remembered();
-if (lastDocument) action(async () => { await loadReview(lastDocument); });
+const lastJob = remembered(jobStorageKey);
+if (lastDocument || lastJob) action(async () => {
+  const results = await Promise.allSettled([
+    lastDocument ? loadReview(lastDocument) : Promise.resolve(),
+    lastJob ? loadJob(lastJob) : Promise.resolve(),
+  ]);
+  const failures = results.filter(result => result.status === 'rejected').map(result => result.reason?.message || 'Connection failed. Check that the server is running.');
+  if (failures.length) throw new Error(failures.join('\n'));
+});
