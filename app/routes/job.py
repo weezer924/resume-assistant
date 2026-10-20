@@ -39,3 +39,12 @@ async def post_job_extract(
     requirements = await jobs.extract(job_id)
 
     return {"requirements": requirements}
+
+
+@router.get("/jobs/{job_id}/requirements")
+def get_job_requirements(
+    job_id: str, store: Annotated[SqliteStore, Depends(get_store)]
+):
+    if store.get_job(job_id) is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {"requirements": store.get_job_requirements(job_id)}

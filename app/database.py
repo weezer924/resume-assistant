@@ -387,6 +387,52 @@ class SqliteStore:
                 for row in rows
             ]
 
+    def get_confirmed_facts(self) -> list[FactDraft]:
+        """Facts eligible for retrieval and generation: confirmed only, across all documents."""
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                SELECT id, document_id, claim, evidence_quote, original_claim, source_sequence, status, extraction_run_id, confirmed_at, created_at, updated_at
+                FROM facts
+                WHERE status = 'confirmed'
+                ORDER BY id
+                """
+            )
+            rows = cast(
+                list[
+                    tuple[
+                        int,  # id: int
+                        str,  # document_id: str
+                        str,  # claim: str
+                        str,  # evidence_quote: str
+                        str,  # original_claim: str
+                        int,  # source_sequence: int
+                        Literal["pending", "confirmed", "rejected"],  # status
+                        int | None,  # extraction_run_id: int | None
+                        str | None,  # confirmed_at: str | None
+                        str,  # created_at: str
+                        str,  # updated_at: str
+                    ]
+                ],
+                cursor.fetchall(),
+            )
+            return [
+                FactDraft(
+                    id=row[0],
+                    document_id=row[1],
+                    claim=row[2],
+                    evidence_quote=row[3],
+                    original_claim=row[4],
+                    source_sequence=row[5],
+                    status=row[6],
+                    extraction_run_id=row[7],
+                    confirmed_at=row[8],
+                    created_at=row[9],
+                    updated_at=row[10],
+                )
+                for row in rows
+            ]
+
     def get_fact(self, fact_id: int) -> FactDraft | None:
         with sqlite3.connect(self.db_path) as connection:
             cursor = connection.execute(

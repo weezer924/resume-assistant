@@ -155,3 +155,26 @@ def test_save_job_requirement(store: SqliteStore):
     for actual, expected in zip(saved, requirements):
         assert actual.job_id == job.id
         assert actual.model_dump(exclude={"id", "job_id"}) == expected.model_dump()
+
+
+def test_get_confirmed_facts_excludes_pending_and_rejected(store: SqliteStore):
+    pending_id = store.save_fact(DOCUMENT_ID_1, "pending claim", "example_body_1", 1, 1)
+    confirmed_id = store.save_fact(
+        DOCUMENT_ID_1, "confirmed claim", "example_body_2", 2, 1
+    )
+    rejected_id = store.save_fact(
+        DOCUMENT_ID_2, "rejected claim", "example_body_3", 1, 1
+    )
+    edited_id = store.save_fact(DOCUMENT_ID_2, "edited claim", "example_body_3", 1, 1)
+
+    assert store.confirm_fact(confirmed_id) is not None
+    assert store.confirm_fact(rejected_id) is not None
+    assert store.reject_fact(rejected_id) is not None
+    assert store.confirm_fact(edited_id) is not None
+    assert store.edit_fact(edited_id, "edited again") is not None
+
+    confirmed = store.get_confirmed_facts()
+
+    assert [fact.id for fact in confirmed] == [confirmed_id]
+    assert confirmed[0].status == "confirmed"
+    assert pending_id not in [fact.id for fact in confirmed]

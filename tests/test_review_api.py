@@ -234,3 +234,39 @@ def test_get_requirement_id_from_job_id(tmp_path: Path):
 
     finally:
         app.dependency_overrides.clear()
+
+
+def test_get_job_requirements_api(tmp_path: Path):
+    store = SqliteStore(str(tmp_path / "review.db"))
+    store.save_job(Job(id="job-1", source_text="Python experience required"))
+    saved_ids = store.save_job_requirements(
+        "job-1",
+        [
+            ModelJobRequirementOutput(
+                requirement_text="Python experience required",
+                normalized_requirement="Python experience",
+                category="Tech",
+                required_or_preferred="required",
+                years_or_level=None,
+            )
+        ],
+    )
+
+    app.dependency_overrides[get_store] = lambda: store
+
+    try:
+        with TestClient(app) as client:
+            response = client.get("/jobs/job-1/requirements")
+            assert response.status_code == 200, response.text
+
+            returned = [
+                JobRequirement.model_validate(item)
+                for item in cast(list[object], response.json()["requirements"])
+            ]
+            assert returned == store.get_job_requirements("job-1")
+            assert [item.id for item in returned] == saved_ids
+
+            missing = client.get("/jobs/missing-job/requirements")
+            assert missing.status_code == 404
+    finally:
+        app.dependency_overrides.clear()
