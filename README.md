@@ -15,6 +15,9 @@ https://github.com/user-attachments/assets/24abc584-6542-4440-8d9e-6f7951d5a598
 ### Here is the Output for extracted from source span with LLM (OpenAI API)
 https://github.com/user-attachments/assets/2776ecdb-5d39-4265-a2b2-c92cda8183c0
 
+### Here is the Job Extra UI with LLM (OpenAI API)
+<img width="1515" height="986" alt="Image" src="https://github.com/user-attachments/assets/9adc7dda-26d8-4051-b2c5-af12f3a290a6" />
+
 ## What works today
 
 - Import UTF-8 Markdown and persist the original document and ordered source
